@@ -2,13 +2,19 @@ package com.example.rentalTool_BackEnd.user.model;
 
 import com.example.rentalTool_BackEnd.user.model.enums.UserType;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "users")
 @Getter
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode
 public class User {
 
     @Id
@@ -39,4 +45,29 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     private UserType userType;
+
+    public User(String password, String email, String lastName, String firstName, UserType userType) {
+        this.password = password;
+        this.email = email;
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.userType = userType;
+
+        // TODO add verification system
+        this.verified = true;
+        this.blocked = false;
+
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+        this.changedPasswordAt = Instant.now();
+        this.blockedAt = Instant.now();
+        this.verifiedAt = Instant.now();
+
+    }
+
+    public void changePassword(String password) {
+        this.password = password;
+        this.changedPasswordAt = Instant.now();
+        this.updatedAt = Instant.now();
+    }
 }
