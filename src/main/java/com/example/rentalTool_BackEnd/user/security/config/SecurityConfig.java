@@ -1,0 +1,98 @@
+package com.example.rentalTool_BackEnd.user.security.config;
+
+import com.example.rentalTool_BackEnd.user.security.jwt.filter.JwtAuthenticationFilter;
+import com.example.rentalTool_BackEnd.user.security.provider.AccountAuthenticationProvider;
+import com.example.rentalTool_BackEnd.user.security.service.CustomUserDetailsService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
+
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
+
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+@RequiredArgsConstructor
+class SecurityConfig {
+
+    private final AccountAuthenticationProvider authenticationProvider;
+    private final CustomUserDetailsService detailsService;
+    private final JwtDecoder jwtDecoder;
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity security) throws Exception {
+        AuthenticationManagerBuilder authenticationManagerBuilder = security.getSharedObject(AuthenticationManagerBuilder.class);
+        authenticationManagerBuilder.authenticationProvider(authenticationProvider);
+        authenticationManagerBuilder.userDetailsService(detailsService);
+
+        security.csrf(AbstractHttpConfigurer::disable);
+
+        security.oauth2ResourceServer(Customizer.withDefaults());
+        security.oauth2ResourceServer(o2auth -> o2auth.jwt(jwtConfigurer -> {
+            jwtConfigurer.decoder(jwtDecoder);
+            jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter());
+        }));
+
+        security.cors(httpSecurityCorsConfigurer -> httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource()));
+
+        security.authorizeHttpRequests(
+                        auth ->
+                                auth
+                                        .requestMatchers(POST, "/api/v1/auth/register").permitAll()
+                                        .requestMatchers(POST, "/api/v1/auth/login").permitAll()
+                                        .requestMatchers(GET, "/api/v1/auth/me").authenticated()
+                                        .requestMatchers(POST, "/api/v1/auth/changePassword").authenticated()
+                )
+                .authenticationManager(authenticationManagerBuilder.build())
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .httpBasic(Customizer.withDefaults())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+
+        return security.build();
+    }
+
+    @Bean
+    JwtAuthenticationConverter jwtAuthenticationConverter() {
+        final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
+        jwtGrantedAuthoritiesConverter.setAuthoritiesClaimName("authorities"); // default is "roles"
+        jwtGrantedAuthoritiesConverter.setAuthorityPrefix(""); // default is "ROLE_"
+
+        final JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
+        jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(jwtGrantedAuthoritiesConverter);
+        return jwtAuthenticationConverter;
+    }
+
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:4200"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "DELETE")); // "PUT" may be added
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+}
