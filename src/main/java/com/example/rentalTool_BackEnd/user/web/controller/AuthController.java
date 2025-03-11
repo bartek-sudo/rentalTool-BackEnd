@@ -86,10 +86,14 @@ class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<HttpResponse> changePassword(
             @RequestBody @Valid ChangePasswordRequest changePasswordRequest,
-            @RequestHeader("Authorization") String authHeader
+            Authentication authentication
+//            @RequestHeader("Authorization") String authHeader
     ) {
-        final String token = authHeader.replace("Bearer ", "");
-        userService.changeUserPassword(tokenService.getUserIdFromJwtToken(token), changePasswordRequest);
+//        final String token = authHeader.replace("Bearer ", "");
+//        userService.changeUserPassword(tokenService.getUserIdFromJwtToken(token), changePasswordRequest);
+
+        final User user = userService.getUserByEmail(authentication.getName());
+        userService.changeUserPassword(user.getId(), changePasswordRequest);
 
         return ResponseEntity.status(OK).body(HttpResponse.builder()
                 .timeStamp(TimeUtil.getCurrentTimeWithFormat())
