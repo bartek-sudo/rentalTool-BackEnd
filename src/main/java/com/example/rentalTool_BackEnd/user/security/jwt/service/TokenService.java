@@ -1,13 +1,11 @@
 package com.example.rentalTool_BackEnd.user.security.jwt.service;
 
-import com.example.rentalTool_BackEnd.user.exception.IllegalAccountAccessException;
 import com.example.rentalTool_BackEnd.user.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
