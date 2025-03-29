@@ -61,6 +61,9 @@ class SecurityConfig {
                                         .requestMatchers(POST, "/api/v1/auth/login").permitAll()
                                         .requestMatchers(GET, "/api/v1/auth/me").authenticated()
                                         .requestMatchers(POST, "/api/v1/auth/change-password").authenticated()
+                                        .requestMatchers(POST, "/api/v1/tools/create").authenticated()
+                                        .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
+                                        .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()
                                         .requestMatchers("/swagger-ui.html").permitAll()
