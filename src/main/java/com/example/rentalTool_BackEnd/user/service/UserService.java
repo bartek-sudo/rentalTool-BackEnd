@@ -6,10 +6,13 @@ import com.example.rentalTool_BackEnd.user.model.User;
 import com.example.rentalTool_BackEnd.user.model.enums.UserType;
 import com.example.rentalTool_BackEnd.user.web.requests.ChangePasswordRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
 public interface UserService {
+
+    User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException;
 
     User getUserByEmail(String email) throws UserNotFoundException;
 
