@@ -19,9 +19,9 @@ public class ReservationRepo {
         return reservationJpaRepo.save(reservation);
     }
 
-    public List<Reservation> findReservationByToolId(long toolId) {
-        return reservationJpaRepo.findByToolId(toolId);
-    }
+//    public List<Reservation> findReservationByToolId(long toolId) {
+//        return reservationJpaRepo.findByToolId(toolId);
+//    }
 
     public List<Reservation> findReservationByRenterId(long renterId) {
         return reservationJpaRepo.findByRenterId(renterId);
