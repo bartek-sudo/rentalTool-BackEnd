@@ -1,7 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.model;
 
 import com.example.rentalTool_BackEnd.tool.model.enums.Category;
-import com.example.rentalTool_BackEnd.user.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

@@ -1,8 +1,6 @@
 package com.example.rentalTool_BackEnd.reservation.model;
 
 import com.example.rentalTool_BackEnd.reservation.model.enums.ReservationStatus;
-import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.user.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

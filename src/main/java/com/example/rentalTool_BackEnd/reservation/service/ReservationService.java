@@ -13,8 +13,6 @@ public interface ReservationService {
 
     Reservation getReservationById(long id);
 
-    List<Reservation> getReservationsForTool(long toolId);
-
     List<Reservation> getReservationsForRenter(long renterId);
 
     List<Reservation> getReservationsForOwner(long ownerId);

@@ -2,8 +2,6 @@ package com.example.rentalTool_BackEnd.reservation.web.controller;
 
 import com.example.rentalTool_BackEnd.reservation.model.DailyAvailability;
 import com.example.rentalTool_BackEnd.reservation.service.ToolAvailabilityService;
-import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
-import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
