@@ -22,10 +22,10 @@ class UserServiceImpl implements UserService {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
 
-    @Override
-    public User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException {
-        return userRepo.findUserByEmail(authentication.getName()).orElseThrow(() -> new UserNotFoundException("User not found by email"));
-    }
+//    @Override
+//    public User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException {
+//        return userRepo.findUserByEmail(authentication.getName()).orElseThrow(() -> new UserNotFoundException("User not found by email"));
+//    }
 
     @Override
     public User getUserByEmail(String email) throws UserNotFoundException {

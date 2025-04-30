@@ -58,11 +58,6 @@ class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public List<Reservation> getReservationsForTool(long toolId) {
-        return reservationRepo.findReservationByToolId(toolId);
-    }
-
-    @Override
     public List<Reservation> getReservationsForRenter(long renterId) {
         return reservationRepo.findReservationByRenterId(renterId);
     }
