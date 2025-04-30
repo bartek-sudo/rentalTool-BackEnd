@@ -55,7 +55,7 @@ public class ReservationController {
                         .httpStatus(HttpStatus.CREATED)
                         .reason("Reservation created successfully")
                         .message("Reservation created")
-                        .data(Map.of("reservation", reservation))  //todo: toDto(reservation)
+                        .data(Map.of("reservation", reservationMapper.toDto(reservation)))
                         .build());
 
     }
