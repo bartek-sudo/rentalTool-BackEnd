@@ -7,5 +7,5 @@ import java.time.LocalDate;
 import java.util.List;
 
 public interface ToolAvailabilityService {
-    List<DailyAvailability> getToolAvailability(Tool tool, LocalDate startDate, LocalDate endDate);
+    List<DailyAvailability> getToolAvailability(long toolId, LocalDate startDate, LocalDate endDate);
 }

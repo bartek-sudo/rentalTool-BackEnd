@@ -15,8 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-
 @Service
 @RequiredArgsConstructor
 class UserServiceImpl implements UserService {
@@ -39,10 +37,10 @@ class UserServiceImpl implements UserService {
         return userRepo.findUserById(id).orElseThrow(() -> new UserNotFoundException("User not found by id"));
     }
 
-    @Override
-    public List<User> getUsersByFirstName(String firstName) {
-        return userRepo.findUsersByFirstName(firstName);
-    }
+//    @Override
+//    public List<User> getUsersByFirstName(String firstName) {
+//        return userRepo.findUsersByFirstName(firstName);
+//    }
 
     @Override
     @Transactional

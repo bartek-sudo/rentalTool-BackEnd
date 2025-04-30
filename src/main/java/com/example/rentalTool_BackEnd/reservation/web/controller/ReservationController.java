@@ -5,14 +5,13 @@ import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
 import com.example.rentalTool_BackEnd.reservation.web.mapper.ReservationMapper;
 import com.example.rentalTool_BackEnd.reservation.web.requests.ReservationCreateRequest;
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
-import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.tool.service.ToolService;
-import com.example.rentalTool_BackEnd.user.model.User;
-import com.example.rentalTool_BackEnd.user.service.UserService;
+import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
+import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,54 +23,49 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ReservationController {
     private final ReservationService reservationService;
-    private final ToolService toolService;
-    private final UserService userService;
+    private final ToolExternalService toolExternalService;
     private final ReservationMapper reservationMapper;
 
     @PostMapping("/create")
     public ResponseEntity<HttpResponse> createReservation(
             @RequestBody ReservationCreateRequest request,
             Authentication authentication) {
-        try {
-            User currentUser = userService.getUserFromAuthentication(authentication);
-            Tool tool = toolService.getToolById(request.toolId());
 
-            if (tool.getOwner().getId() == currentUser.getId()) {
-                return ResponseEntity.badRequest()
-                        .body(HttpResponse.builder()
-                                .statusCode(HttpStatus.BAD_REQUEST.value())
-                                .httpStatus(HttpStatus.BAD_REQUEST)
-                                .reason("Bad Request")
-                                .message("You cannot reserve your own tool")
-                                .build());
-            }
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
 
-            final Reservation reservation = reservationService.createReservation(
-                    tool, currentUser, request.startDate(), request.endDate());
+        final long userId = jwt.getClaim("user_id");
+        ToolExternalDto tool = toolExternalService.getToolDtoById(request.toolId());
 
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.CREATED.value())
-                            .httpStatus(HttpStatus.CREATED)
-                            .reason("Reservation created successfully")
-                            .message("Reservation created")
-                            .data(Map.of("reservation", reservation))  //toDto(reservation)
-                            .build());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+        if (tool.ownerId() == userId) {
+            return ResponseEntity.badRequest()
                     .body(HttpResponse.builder()
                             .statusCode(HttpStatus.BAD_REQUEST.value())
                             .httpStatus(HttpStatus.BAD_REQUEST)
                             .reason("Bad Request")
-                            .message(e.getMessage())
+                            .message("You cannot reserve your own tool")
                             .build());
         }
+
+        final Reservation reservation = reservationService.createReservation(
+                tool.id(), userId, request.startDate(), request.endDate());
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.CREATED.value())
+                        .httpStatus(HttpStatus.CREATED)
+                        .reason("Reservation created successfully")
+                        .message("Reservation created")
+                        .data(Map.of("reservation", reservation))  //todo: toDto(reservation)
+                        .build());
+
     }
 
     @GetMapping("/my-rentals")
     public ResponseEntity<HttpResponse> getMyRentals(Authentication authentication) {
-        final User currentUser = userService.getUserFromAuthentication(authentication);
-        final List<Reservation> reservations =  reservationService.getReservationsForRenter(currentUser);
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+
+        final long userId = jwt.getClaim("user_id");
+        final List<Reservation> reservations =  reservationService.getReservationsForRenter(userId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(HttpResponse.builder()
                         .statusCode(HttpStatus.OK.value())
@@ -86,8 +80,10 @@ public class ReservationController {
 
     @GetMapping("/my-tools-reservations")
     public ResponseEntity<HttpResponse> getMyToolsReservations(Authentication authentication) {
-        final User currentUser = userService.getUserFromAuthentication(authentication);
-        final List<Reservation> reservations =  reservationService.getReservationsForOwner(currentUser);
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+
+        final long userId = jwt.getClaim("user_id");
+        final List<Reservation> reservations =  reservationService.getReservationsForOwner(userId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(HttpResponse.builder()
                         .statusCode(HttpStatus.OK.value())
@@ -104,190 +100,155 @@ public class ReservationController {
     public ResponseEntity<HttpResponse> confirmReservation(
             @PathVariable("reservationId") long reservationId,
             Authentication authentication) {
-        try {
-            final User currentUser = userService.getUserFromAuthentication(authentication);
-            Reservation reservation = reservationService.getReservationById(reservationId);
 
-            if (reservation.getTool().getOwner().getId() != currentUser.getId()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(HttpResponse.builder()
-                                .statusCode(HttpStatus.FORBIDDEN.value())
-                                .httpStatus(HttpStatus.FORBIDDEN)
-                                .reason("Forbidden")
-                                .message("You are not the owner of this tool")
-                                .build());
-            }
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
 
-            reservation = reservationService.confirmReservation(reservationId);
-            return ResponseEntity.status(HttpStatus.OK)
+        final long userId = jwt.getClaim("user_id");
+        Reservation reservation = reservationService.getReservationById(reservationId);
+        final ToolExternalDto tool = toolExternalService.getToolDtoById(reservation.getToolId());
+
+        if (tool.ownerId() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.OK.value())
-                            .httpStatus(HttpStatus.OK)
-                            .reason("Reservation confirmed")
-                            .message("Reservation confirmed")
-                            .data(Map.of("reservation", reservationMapper.toDto(reservation)))
-                            .build());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.BAD_REQUEST.value())
-                            .httpStatus(HttpStatus.BAD_REQUEST)
-                            .reason("Bad Request")
-                            .message(e.getMessage())
+                            .statusCode(HttpStatus.FORBIDDEN.value())
+                            .httpStatus(HttpStatus.FORBIDDEN)
+                            .reason("Forbidden")
+                            .message("You are not the owner of this tool")
                             .build());
         }
+
+        reservation = reservationService.confirmReservation(reservationId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Reservation confirmed")
+                        .message("Reservation confirmed")
+                        .data(Map.of("reservation", reservationMapper.toDto(reservation)))
+                        .build());
+
     }
 
     @PutMapping("/{reservationId}/pay")
     public ResponseEntity<HttpResponse> payReservation(
             @PathVariable("reservationId") long reservationId,
             Authentication authentication) {
-        try {
-            final User currentUser = userService.getUserFromAuthentication(authentication);
-            Reservation reservation = reservationService.getReservationById(reservationId);
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long userId = jwt.getClaim("user_id");
+        Reservation reservation = reservationService.getReservationById(reservationId);
 
-            if (reservation.getRenter().getId() != currentUser.getId()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(HttpResponse.builder()
-                                .statusCode(HttpStatus.FORBIDDEN.value())
-                                .httpStatus(HttpStatus.FORBIDDEN)
-                                .reason("Forbidden")
-                                .message("You are not the renter of this tool")
-                                .build());
-            }
-
-            reservation = reservationService.payReservation(reservationId);
-            return ResponseEntity.status(HttpStatus.OK)
+        if (reservation.getRenterId() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.OK.value())
-                            .httpStatus(HttpStatus.OK)
-                            .reason("Reservation paid")
-                            .message("Reservation paid")
-                            .data(Map.of("reservation", reservationMapper.toDto(reservation)))
-                            .build());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.BAD_REQUEST.value())
-                            .httpStatus(HttpStatus.BAD_REQUEST)
-                            .reason("Bad Request")
-                            .message(e.getMessage())
+                            .statusCode(HttpStatus.FORBIDDEN.value())
+                            .httpStatus(HttpStatus.FORBIDDEN)
+                            .reason("Forbidden")
+                            .message("You are not the renter of this tool")
                             .build());
         }
+
+        reservation = reservationService.payReservation(reservationId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Reservation paid")
+                        .message("Reservation paid")
+                        .data(Map.of("reservation", reservationMapper.toDto(reservation)))
+                        .build());
+
     }
 
     @PutMapping("/{reservationId}/finish")
     public ResponseEntity<HttpResponse> finishReservation(
             @PathVariable("reservationId") long reservationId,
             Authentication authentication) {
-        try {
-            final User currentUser = userService.getUserFromAuthentication(authentication);
-            Reservation reservation = reservationService.getReservationById(reservationId);
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long userId = jwt.getClaim("user_id");
+        Reservation reservation = reservationService.getReservationById(reservationId);
 
-            if (reservation.getRenter().getId() != currentUser.getId()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(HttpResponse.builder()
-                                .statusCode(HttpStatus.FORBIDDEN.value())
-                                .httpStatus(HttpStatus.FORBIDDEN)
-                                .reason("Forbidden")
-                                .message("You are not the renter of this tool")
-                                .build());
-            }
-
-            reservation = reservationService.finishReservation(reservationId);
-            return ResponseEntity.status(HttpStatus.OK)
+        if (reservation.getRenterId() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.OK.value())
-                            .httpStatus(HttpStatus.OK)
-                            .reason("Reservation finished")
-                            .message("Reservation finished")
-                            .data(Map.of("reservation", reservationMapper.toDto(reservation)))
-                            .build());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.BAD_REQUEST.value())
-                            .httpStatus(HttpStatus.BAD_REQUEST)
-                            .reason("Bad Request")
-                            .message(e.getMessage())
+                            .statusCode(HttpStatus.FORBIDDEN.value())
+                            .httpStatus(HttpStatus.FORBIDDEN)
+                            .reason("Forbidden")
+                            .message("You are not the renter of this tool")
                             .build());
         }
+
+        reservation = reservationService.finishReservation(reservationId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Reservation finished")
+                        .message("Reservation finished")
+                        .data(Map.of("reservation", reservationMapper.toDto(reservation)))
+                        .build());
+
     }
 
     @PutMapping("/{reservationId}/cancel")
     public ResponseEntity<HttpResponse> cancelReservation(
             @PathVariable("reservationId") long reservationId,
             Authentication authentication) {
-        try {
-            final User currentUser = userService.getUserFromAuthentication(authentication);
-            Reservation reservation = reservationService.getReservationById(reservationId);
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long userId = jwt.getClaim("user_id");
+        Reservation reservation = reservationService.getReservationById(reservationId);
 
-            if (reservation.getRenter().getId() != currentUser.getId()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(HttpResponse.builder()
-                                .statusCode(HttpStatus.FORBIDDEN.value())
-                                .httpStatus(HttpStatus.FORBIDDEN)
-                                .reason("Forbidden")
-                                .message("You are not the renter of this tool")
-                                .build());
-            }
-
-            reservation = reservationService.cancelReservation(reservationId);
-            return ResponseEntity.status(HttpStatus.OK)
+        if (reservation.getRenterId() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.OK.value())
-                            .httpStatus(HttpStatus.OK)
-                            .reason("Reservation canceled")
-                            .message("Reservation canceled")
-                            .data(Map.of("reservation", reservationMapper.toDto(reservation)))
-                            .build());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.BAD_REQUEST.value())
-                            .httpStatus(HttpStatus.BAD_REQUEST)
-                            .reason("Bad Request")
-                            .message(e.getMessage())
+                            .statusCode(HttpStatus.FORBIDDEN.value())
+                            .httpStatus(HttpStatus.FORBIDDEN)
+                            .reason("Forbidden")
+                            .message("You are not the renter of this tool")
                             .build());
         }
+
+        reservation = reservationService.cancelReservation(reservationId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Reservation canceled")
+                        .message("Reservation canceled")
+                        .data(Map.of("reservation", reservationMapper.toDto(reservation)))
+                        .build());
+
     }
 
     @GetMapping("/{reservationId}")
     public ResponseEntity<HttpResponse> getReservationById(
             @PathVariable("reservationId") long reservationId,
             Authentication authentication) {
-        try {
-            final User currentUser = userService.getUserFromAuthentication(authentication);
-            Reservation reservation = reservationService.getReservationById(reservationId);
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long userId = jwt.getClaim("user_id");
+        Reservation reservation = reservationService.getReservationById(reservationId);
 
-            if (reservation.getRenter().getId() != currentUser.getId() &&
-                    reservation.getTool().getOwner().getId() != currentUser.getId()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(HttpResponse.builder()
-                                .statusCode(HttpStatus.FORBIDDEN.value())
-                                .httpStatus(HttpStatus.FORBIDDEN)
-                                .reason("Forbidden")
-                                .message("You are not the renter or owner of this tool")
-                                .build());
-            }
+        final ToolExternalDto tool = toolExternalService.getToolDtoById(reservation.getToolId());
 
-            return ResponseEntity.status(HttpStatus.OK)
+        if (reservation.getRenterId() != userId &&
+                tool.ownerId() != userId) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.OK.value())
-                            .httpStatus(HttpStatus.OK)
-                            .reason("Reservation details")
-                            .message("Reservation details")
-                            .data(Map.of("reservation", reservationMapper.toDto(reservation)))
-                            .build());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.BAD_REQUEST.value())
-                            .httpStatus(HttpStatus.BAD_REQUEST)
-                            .reason("Bad Request")
-                            .message(e.getMessage())
+                            .statusCode(HttpStatus.FORBIDDEN.value())
+                            .httpStatus(HttpStatus.FORBIDDEN)
+                            .reason("Forbidden")
+                            .message("You are not the renter or owner of this tool")
                             .build());
         }
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Reservation details")
+                        .message("Reservation details")
+                        .data(Map.of("reservation", reservationMapper.toDto(reservation)))
+                        .build());
+
     }
 
 

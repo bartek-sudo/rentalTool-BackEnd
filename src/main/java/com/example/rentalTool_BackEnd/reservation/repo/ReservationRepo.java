@@ -2,10 +2,7 @@ package com.example.rentalTool_BackEnd.reservation.repo;
 
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
 import com.example.rentalTool_BackEnd.reservation.model.enums.ReservationStatus;
-import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.user.model.User;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -22,20 +19,20 @@ public class ReservationRepo {
         return reservationJpaRepo.save(reservation);
     }
 
-    public List<Reservation> findReservationByTool(Tool tool) {
-        return reservationJpaRepo.findByTool(tool);
+    public List<Reservation> findReservationByToolId(long toolId) {
+        return reservationJpaRepo.findByToolId(toolId);
     }
 
-    public List<Reservation> findReservationByRenter(User renter) {
-        return reservationJpaRepo.findByRenter(renter);
+    public List<Reservation> findReservationByRenterId(long renterId) {
+        return reservationJpaRepo.findByRenterId(renterId);
     }
 
-    public List<Reservation> findReservationsByToolOwner(User owner) {
-        return reservationJpaRepo.findByOwner(owner);
+    public List<Reservation> findByToolId(long toolId) {
+        return reservationJpaRepo.findByToolId(toolId);
     }
 
     public List<Reservation> findOverlappingReservations(
-            @Param("toolId") Long toolId,
+            @Param("toolId") long toolId,
             @Param("startDate") LocalDate startDate,
             @Param("endDate") LocalDate endDate,
             @Param("statuses") List<ReservationStatus> statuses) {

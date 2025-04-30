@@ -6,24 +6,27 @@ import com.example.rentalTool_BackEnd.reservation.model.Reservation;
 import com.example.rentalTool_BackEnd.reservation.model.enums.ReservationStatus;
 import com.example.rentalTool_BackEnd.reservation.repo.ReservationRepo;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
-import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.user.model.User;
+import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
+import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
-public class ReservationServiceImpl implements ReservationService {
+class ReservationServiceImpl implements ReservationService {
 
     private final ReservationRepo reservationRepo;
+    private final ToolExternalService toolExternalService;
 
     @Override
-    public boolean isToolAvailable(Tool tool, LocalDate startDate, LocalDate endDate) {
+    public boolean isToolAvailable(long toolId, LocalDate startDate, LocalDate endDate) {
         List<Reservation> overlappingReservations = reservationRepo.findOverlappingReservations(
-                tool.getId(),
+                toolId,
                 startDate,
                 endDate,
                 List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.PAID)
@@ -32,12 +35,19 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public Reservation createReservation(Tool tool, User renter, LocalDate startDate, LocalDate endDate) {
-        if (!isToolAvailable(tool, startDate, endDate)) {
+    public Reservation createReservation(long toolId, long renterId, LocalDate startDate, LocalDate endDate) {
+        if (!isToolAvailable(toolId, startDate, endDate)) {
             throw new ToolNotAvailableException("Tool is not available for the selected dates");
         }
 
-        final Reservation reservation = new Reservation(tool, renter, startDate, endDate);
+        final ToolExternalDto tool = toolExternalService.getToolDtoById(toolId);
+
+        final Reservation reservation = new Reservation(toolId, renterId, startDate, endDate);
+
+        long days = ChronoUnit.DAYS.between(startDate, endDate) + 1;
+        double totalPrice = tool.pricePerDay() * days;
+        reservation.setTotalPrice(totalPrice);
+
         return reservationRepo.saveReservation(reservation);
     }
 
@@ -48,18 +58,28 @@ public class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public List<Reservation> getReservationsForTool(Tool tool) {
-        return reservationRepo.findReservationByTool(tool);
+    public List<Reservation> getReservationsForTool(long toolId) {
+        return reservationRepo.findReservationByToolId(toolId);
     }
 
     @Override
-    public List<Reservation> getReservationsForRenter(User renter) {
-        return reservationRepo.findReservationByRenter(renter);
+    public List<Reservation> getReservationsForRenter(long renterId) {
+        return reservationRepo.findReservationByRenterId(renterId);
     }
 
     @Override
-    public List<Reservation> getReservationsForOwner(User owner) {
-        return reservationRepo.findReservationsByToolOwner(owner);
+    public List<Reservation> getReservationsForOwner(long ownerId) {
+        // Krok 1: Pobierz wszystkie narzędzia należące do danego użytkownika
+        List<ToolExternalDto> ownerTools = toolExternalService.getToolsByOwnerId(ownerId);
+
+        // Krok 2: Pobierz wszystkie rezerwacje dla tych narzędzi
+        List<Reservation> allReservations = new ArrayList<>();
+        for (ToolExternalDto tool : ownerTools) {
+            List<Reservation> toolReservations = reservationRepo.findByToolId(tool.id());
+            allReservations.addAll(toolReservations);
+        }
+
+        return allReservations;
     }
 
     @Override

@@ -12,7 +12,7 @@ public class ToolDtoMapper {
                 tool.getDescription(),
                 tool.getPricePerDay(),
                 tool.getCategory().name(),
-                tool.getOwner().getEmail(),
+                tool.getOwnerId(),
                 tool.getAddress(),
                 tool.getLatitude(),
                 tool.getLongitude()

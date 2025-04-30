@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -24,5 +25,9 @@ public class ToolRepo {
 
     public Page<Tool> findAllTools(Pageable pageable){
         return toolJpaRepo.findAll(pageable);
+    }
+
+    public List<Tool> findToolsByOwnerId(long ownerId) {
+        return toolJpaRepo.findByOwnerId(ownerId);
     }
 }

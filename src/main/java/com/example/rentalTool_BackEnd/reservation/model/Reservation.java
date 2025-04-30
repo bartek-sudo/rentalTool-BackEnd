@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -22,16 +23,14 @@ public class Reservation {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tool_id", nullable = false)
-    private Tool tool;
+    private long toolId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "renter_id", nullable = false)
-    private User renter;
+    private long renterId;
 
     private LocalDate startDate;
     private LocalDate endDate;
+
+    @Setter
     private double totalPrice;
 
     @Enumerated(EnumType.STRING)
@@ -40,16 +39,12 @@ public class Reservation {
     private Instant createdAt;
     private Instant updatedAt;
 
-    public Reservation(Tool tool, User renter, LocalDate startDate, LocalDate endDate) {
-        this.tool = tool;
-        this.renter = renter;
+    public Reservation(long toolId, long renterId, LocalDate startDate, LocalDate endDate) {
+        this.toolId = toolId;
+        this.renterId = renterId;
         this.startDate = startDate;
         this.endDate = endDate;
         this.status = ReservationStatus.PENDING;
-
-        long days =  ChronoUnit.DAYS.between(startDate, endDate)+1;
-        this.totalPrice = tool.getPricePerDay() * days;
-
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }

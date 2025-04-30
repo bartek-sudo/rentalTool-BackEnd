@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -73,7 +74,11 @@ public class ToolController {
 
     @PostMapping("/create")
     public ResponseEntity<HttpResponse> createTool(@RequestBody ToolCreateRequest toolCreateRequest, Authentication authentication) {
-        Tool tool = toolService.createTool(toolCreateRequest, authentication.getName());
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+
+        final long userId = jwt.getClaim("user_id");
+
+        Tool tool = toolService.createTool(toolCreateRequest, userId);
         return ResponseEntity.status(OK)
                 .body(HttpResponse.builder()
                         .timeStamp(TimeUtil.getCurrentTimeWithFormat())

@@ -9,7 +9,7 @@ public interface ToolService {
 
     Tool getToolById(long id);
 
-    Tool createTool(ToolCreateRequest toolCreateRequest, String ownerEmail);
+    Tool createTool(ToolCreateRequest toolCreateRequest, long ownerId);
 
     Page<Tool> getAllTools(Pageable pageable);
 }

@@ -8,8 +8,6 @@ import com.example.rentalTool_BackEnd.user.web.requests.ChangePasswordRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
 import org.springframework.security.core.Authentication;
 
-import java.util.List;
-
 public interface UserService {
 
     User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException;
@@ -18,7 +16,7 @@ public interface UserService {
 
     User getUserById(long id) throws UserNotFoundException;
 
-    List<User> getUsersByFirstName(String firstName);
+//    List<User> getUsersByFirstName(String firstName);
 
     User registerUser(UserRegisterRequest userRegisterRequest, UserType userType) throws UserAlreadyExistException;
 

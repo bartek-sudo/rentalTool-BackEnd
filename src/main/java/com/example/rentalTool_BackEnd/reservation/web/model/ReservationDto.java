@@ -1,8 +1,8 @@
 package com.example.rentalTool_BackEnd.reservation.web.model;
 
 public record ReservationDto(
-        String toolName,
-        String renterEmail,
+        long toolId,
+        long renterId,
         String startDate,
         String endDate,
         double totalPrice,

@@ -25,9 +25,7 @@ public class Tool {
     @Enumerated(EnumType.STRING)
     private Category category;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", nullable = false)
-    private User owner;
+    private long ownerId;
 
     private String address; // adres tekstowy do wyświetlania
     private Double latitude; // szerokość geograficzna
@@ -37,12 +35,12 @@ public class Tool {
     private Instant createdAt;
     private Instant updatedAt;
 
-    public Tool(String name, String description, double pricePerDay, Category category, User owner, String address, Double latitude, Double longitude) {
+    public Tool(String name, String description, double pricePerDay, Category category, long owner, String address, Double latitude, Double longitude) {
         this.name = name;
         this.description = description;
         this.pricePerDay = pricePerDay;
         this.category = category;
-        this.owner = owner;
+        this.ownerId = owner;
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;

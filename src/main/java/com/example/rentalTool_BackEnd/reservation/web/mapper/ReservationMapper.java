@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 public class ReservationMapper {
     public ReservationDto toDto(Reservation reservation) {
         return new ReservationDto(
-                reservation.getTool().getName(),
-                reservation.getRenter().getEmail(),
+                reservation.getToolId(),
+                reservation.getRenterId(),
                 reservation.getStartDate().toString(),
                 reservation.getEndDate().toString(),
                 reservation.getTotalPrice(),
