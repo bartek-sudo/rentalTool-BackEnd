@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.tool.web.exception;
 
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
+import com.example.rentalTool_BackEnd.tool.exception.ImageNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.ToolNotFoundException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -17,6 +18,17 @@ class ToolExceptionHandler {
                 .builder()
                 .message(e.getMessage())
                 .reason("Tool has not been found")
+                .statusCode(NOT_FOUND.value())
+                .httpStatus(NOT_FOUND)
+                .build());
+    }
+
+    @ExceptionHandler(ImageNotFoundException.class)
+    public ResponseEntity<HttpResponse> handleImageNotFoundException(ImageNotFoundException e) {
+        return ResponseEntity.status(NOT_FOUND).body(HttpResponse
+                .builder()
+                .message(e.getMessage())
+                .reason("Image has not been found")
                 .statusCode(NOT_FOUND.value())
                 .httpStatus(NOT_FOUND)
                 .build());

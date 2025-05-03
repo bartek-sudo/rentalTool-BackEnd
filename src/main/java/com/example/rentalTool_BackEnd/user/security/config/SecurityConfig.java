@@ -24,8 +24,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-import static org.springframework.http.HttpMethod.GET;
-import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.HttpMethod.*;
 
 @Configuration
 @EnableWebSecurity
@@ -65,6 +64,13 @@ class SecurityConfig {
                                         .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/{toolId}/availability").permitAll()//zabezpieczyć
+
+                                        .requestMatchers(POST, "/api/v1/tools/{toolId}/images").authenticated()
+                                        .requestMatchers(GET, "/api/v1/tools/{toolId}/images").permitAll()
+                                        .requestMatchers(PUT, "/api/v1/tools/{toolId}/images/{imageId}/main").authenticated()
+                                        .requestMatchers(DELETE, "/api/v1/tools/{toolId}/images/{imageId}").authenticated()
+                                        .requestMatchers(GET, "/api/v1/files/{fileName:.+}").permitAll()
+
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()
                                         .requestMatchers("/swagger-ui.html").permitAll()

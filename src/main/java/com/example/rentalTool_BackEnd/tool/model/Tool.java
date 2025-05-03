@@ -5,12 +5,16 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "tools")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 public class Tool {
@@ -30,7 +34,13 @@ public class Tool {
     private Double latitude; // szerokość geograficzna
     private Double longitude; // długość geograficzna
 
-//    private String images;
+    // Główne zdjęcie dla szybkiego dostępu
+    private String mainImageUrl;
+
+    // Relacja z obrazami
+    @OneToMany(mappedBy = "tool", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ToolImage> images = new ArrayList<>();
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -45,6 +55,45 @@ public class Tool {
         this.longitude = longitude;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+    }
+
+    // Pomocnicza metoda do dodawania zdjęcia
+    public void addImage(ToolImage image) {
+        images.add(image);
+        image.setTool(this);
+
+        // Jeśli to główne zdjęcie lub nie ma jeszcze głównego zdjęcia
+        if (image.isMain() || mainImageUrl == null) {
+            setMainImage(image);
+        }
+    }
+
+    // Pomocnicza metoda do usuwania zdjęcia
+    public void removeImage(ToolImage image) {
+        images.remove(image);
+        image.setTool(null);
+
+        // Jeśli usuwamy główne zdjęcie, wybieramy nowe główne zdjęcie
+        if (image.isMain() && !images.isEmpty()) {
+            setMainImage(images.get(0));
+        } else if (images.isEmpty()) {
+            mainImageUrl = null;
+        }
+    }
+
+    // Ustawianie głównego zdjęcia
+    public void setMainImage(ToolImage newMainImage) {
+        // Zresetowanie flagi głównego zdjęcia dla wszystkich zdjęć
+        images.forEach(img -> img.setMain(false));
+
+        // Ustawienie nowego głównego zdjęcia
+        newMainImage.setMain(true);
+        this.mainImageUrl = newMainImage.getUrl();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
     }
 
 }
