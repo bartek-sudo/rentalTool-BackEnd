@@ -72,6 +72,44 @@ public class ToolController {
                         .build());
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<HttpResponse> searchTools(
+            @RequestParam(value = "search", required = false) String searchTerm,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "id") String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = "desc") String sortDirection
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()
+        );
+
+        Page<Tool> toolsPage;
+
+        if (searchTerm != null && !searchTerm.trim().isEmpty()) {
+            toolsPage = toolService.searchTools(searchTerm, pageable);
+        } else {
+            toolsPage = toolService.getAllTools(pageable);
+        }
+
+        return ResponseEntity.status(OK)
+                .body(HttpResponse.builder()
+                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                        .statusCode(OK.value())
+                        .httpStatus(OK)
+                        .reason("Tools search request")
+                        .message("Search results")
+                        .data(Map.of("tools", toolsPage.stream().map(toolDtoMapper::toDto).toList(),
+                                "currentPage", toolsPage.getNumber(),
+                                "totalPages", toolsPage.getTotalPages(),
+                                "totalItems", toolsPage.getTotalElements(),
+                                "pageSize", toolsPage.getSize()
+                        ))
+                        .build());
+    }
+
     @PostMapping("/create")
     public ResponseEntity<HttpResponse> createTool(@RequestBody ToolCreateRequest toolCreateRequest, Authentication authentication) {
         final Jwt jwt = (Jwt) authentication.getPrincipal();

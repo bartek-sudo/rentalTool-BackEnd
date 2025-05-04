@@ -8,6 +8,7 @@ import org.springframework.stereotype.Component;
 public class ToolDtoMapper {
     public ToolDto toDto(Tool tool) {
         return new ToolDto(
+                tool.getId(),
                 tool.getName(),
                 tool.getDescription(),
                 tool.getPricePerDay(),
@@ -15,7 +16,8 @@ public class ToolDtoMapper {
                 tool.getOwnerId(),
                 tool.getAddress(),
                 tool.getLatitude(),
-                tool.getLongitude()
+                tool.getLongitude(),
+                tool.getMainImageUrl()
         );
     }
 }

@@ -27,4 +27,6 @@ public interface ToolService {
     List<ToolImage> getToolImages(long toolId);
 
     ToolImage getImageById(long imageId);
+
+    Page<Tool> searchTools(String searchTerm, Pageable pageable);
 }

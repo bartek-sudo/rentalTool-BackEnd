@@ -30,4 +30,8 @@ public class ToolRepo {
     public List<Tool> findToolsByOwnerId(long ownerId) {
         return toolJpaRepo.findByOwnerId(ownerId);
     }
+
+    public Page<Tool> findToolsByNameOrDescription(String name, String description, Pageable pageable) {
+        return toolJpaRepo.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(name, description, pageable);
+    }
 }

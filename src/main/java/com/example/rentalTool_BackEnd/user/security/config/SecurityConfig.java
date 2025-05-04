@@ -63,6 +63,7 @@ class SecurityConfig {
                                         .requestMatchers(POST, "/api/v1/tools/create").authenticated()
                                         .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
+                                        .requestMatchers(GET, "/api/v1/tools/search").permitAll()
                                         .requestMatchers(GET, "/api/v1/tools/{toolId}/availability").permitAll()//zabezpieczyć
 
                                         .requestMatchers(POST, "/api/v1/tools/{toolId}/images").authenticated()
