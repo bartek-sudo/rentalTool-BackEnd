@@ -9,8 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +29,8 @@ class ToolAvailabilityServiceImpl implements ToolAvailabilityService {
 
         List<LocalDate> allDaysInRange = startDate.datesUntil(endDate.plusDays(1)).toList();
 
-        List<LocalDate> reservedDates = new ArrayList<>();
+        // Użycie Set dla szybszego wyszukiwania
+        Set<LocalDate> reservedDates = new HashSet<>();
 
         for (Reservation reservation : activeReservations) {
             LocalDate reservationStart = reservation.getStartDate();
@@ -37,6 +39,7 @@ class ToolAvailabilityServiceImpl implements ToolAvailabilityService {
             LocalDate overlapStart = reservationStart.isAfter(startDate) ? reservationStart : startDate;
             LocalDate overlapEnd = reservationEnd.isBefore(endDate) ? reservationEnd : endDate;
             reservedDates.addAll(overlapStart.datesUntil(overlapEnd.plusDays(1)).toList());
+
         }
 
         return allDaysInRange.stream()

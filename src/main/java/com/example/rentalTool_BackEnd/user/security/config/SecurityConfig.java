@@ -60,17 +60,30 @@ class SecurityConfig {
                                         .requestMatchers(POST, "/api/v1/auth/login").permitAll()
                                         .requestMatchers(GET, "/api/v1/auth/me").authenticated()
                                         .requestMatchers(POST, "/api/v1/auth/change-password").authenticated()
+
+                                        // Tools endpoints
                                         .requestMatchers(POST, "/api/v1/tools/create").authenticated()
                                         .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/search").permitAll()
                                         .requestMatchers(GET, "/api/v1/tools/{toolId}/availability").permitAll()//zabezpieczyć
 
+                                        // Tool images endpoints
                                         .requestMatchers(POST, "/api/v1/tools/{toolId}/images").authenticated()
                                         .requestMatchers(GET, "/api/v1/tools/{toolId}/images").permitAll()
                                         .requestMatchers(PUT, "/api/v1/tools/{toolId}/images/{imageId}/main").authenticated()
                                         .requestMatchers(DELETE, "/api/v1/tools/{toolId}/images/{imageId}").authenticated()
                                         .requestMatchers(GET, "/api/v1/files/{fileName:.+}").permitAll()
+
+                                        // Reservation endpoints
+                                        .requestMatchers(POST, "/api/v1/reservations/create").authenticated()
+                                        .requestMatchers(GET, "/api/v1/reservations/my-rentals").authenticated()
+                                        .requestMatchers(GET, "/api/v1/reservations/my-tools-reservations").authenticated()
+                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/confirm").authenticated()
+                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/pay").authenticated()
+                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/finish").authenticated()
+                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/cancel").authenticated()
+                                        .requestMatchers(GET, "/api/v1/reservations/{reservationId}").authenticated()
 
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()
