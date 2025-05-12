@@ -64,6 +64,17 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
                 .toList();
     }
 
+    @Override
+    public Page<Tool> searchTools(String searchTerm, Pageable pageable) {
+        return toolRepo.findToolsByNameOrDescription(
+                searchTerm, searchTerm, pageable);
+    }
+
+    @Override
+    public Page<Tool> getToolsByOwnerId(long ownerId, Pageable pageable) {
+        return toolRepo.findByOwnerId(ownerId, pageable);
+    }
+
     // Poniżej nowe metody do obsługi zdjęć
 
     @Override
@@ -150,10 +161,5 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
                 .orElseThrow(() -> new ImageNotFoundException("Image not found with id: " + imageId));
     }
 
-    @Override
-    public Page<Tool> searchTools(String searchTerm, Pageable pageable) {
-        return toolRepo.findToolsByNameOrDescription(
-                searchTerm, searchTerm, pageable);
-    }
 
 }

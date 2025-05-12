@@ -12,6 +12,8 @@ import java.util.List;
 interface ToolJpaRepo extends JpaRepository<Tool, Long> {
     List<Tool> findByOwnerId(long ownerId);
 
+    Page<Tool> findByOwnerId(long ownerId, Pageable pageable);
+
     Page<Tool> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
             String name, String description, Pageable pageable);
 }

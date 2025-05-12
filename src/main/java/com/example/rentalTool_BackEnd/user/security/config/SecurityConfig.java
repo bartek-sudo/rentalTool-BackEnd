@@ -61,6 +61,8 @@ class SecurityConfig {
                                         .requestMatchers(GET, "/api/v1/auth/me").authenticated()
                                         .requestMatchers(POST, "/api/v1/auth/change-password").authenticated()
 
+                                        .requestMatchers(GET, "/api/v1/user/{id}").permitAll()
+
                                         // Tools endpoints
                                         .requestMatchers(POST, "/api/v1/tools/create").authenticated()
                                         .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
@@ -112,7 +114,7 @@ class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(List.of("http://localhost:4200"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "DELETE")); // "PUT" may be added
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

@@ -17,6 +17,10 @@ public interface ToolService {
 
     Page<Tool> getAllTools(Pageable pageable);
 
+    Page<Tool> searchTools(String searchTerm, Pageable pageable);
+
+    Page<Tool> getToolsByOwnerId(long ownerId, Pageable pageable);
+
     // Metody do obsługi zdjęć
     ToolImage addImageToTool(long toolId, MultipartFile file, boolean isMain);
 
@@ -28,5 +32,4 @@ public interface ToolService {
 
     ToolImage getImageById(long imageId);
 
-    Page<Tool> searchTools(String searchTerm, Pageable pageable);
 }

@@ -127,4 +127,39 @@ public class ToolController {
                         .data(Map.of("Tool", toolDtoMapper.toDto(tool)))
                         .build());
     }
+
+    @GetMapping("/my-tools")
+    public ResponseEntity<HttpResponse> getMyTools(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "id") String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = "asc") String sortDirection,
+            Authentication authentication) {
+
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long userId = jwt.getClaim("user_id");
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()
+        );
+
+        Page<Tool> toolsPage = toolService.getToolsByOwnerId(userId, pageable);
+
+        return ResponseEntity.status(OK)
+                .body(HttpResponse.builder()
+                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                        .statusCode(OK.value())
+                        .httpStatus(OK)
+                        .reason("My tools data request")
+                        .message("My tools")
+                        .data(Map.of("tools", toolsPage.stream().map(toolDtoMapper::toDto).toList(),
+                                "currentPage", toolsPage.getNumber(),
+                                "totalPages", toolsPage.getTotalPages(),
+                                "totalItems", toolsPage.getTotalElements(),
+                                "pageSize", toolsPage.getSize()
+                        ))
+                        .build());
+    }
 }
