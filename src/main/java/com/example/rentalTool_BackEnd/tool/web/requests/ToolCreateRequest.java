@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.tool.web.requests;
 
-import java.math.BigDecimal;
+import jakarta.validation.constraints.NotNull;
+
 
 public record ToolCreateRequest(
         String name,
@@ -8,7 +9,9 @@ public record ToolCreateRequest(
         double pricePerDay,
         String category,
         String address,
+        @NotNull
         Double latitude,
+        @NotNull
         Double longitude
 
 //        String images
