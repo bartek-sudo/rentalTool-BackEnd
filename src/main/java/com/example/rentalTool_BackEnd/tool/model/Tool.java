@@ -44,6 +44,8 @@ public class Tool {
     private Instant createdAt;
     private Instant updatedAt;
 
+    private boolean isActive = true;
+
     public Tool(String name, String description, double pricePerDay, Category category, long owner, String address, Double latitude, Double longitude) {
         this.name = name;
         this.description = description;
@@ -55,34 +57,46 @@ public class Tool {
         this.longitude = longitude;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+        this.isActive = true;
     }
 
     // Pomocnicza metoda do dodawania zdjęcia
     public void addImage(ToolImage image) {
         images.add(image);
         image.setTool(this);
-
-        // Jeśli to główne zdjęcie lub nie ma jeszcze głównego zdjęcia
-        if (image.isMain() || mainImageUrl == null) {
-            setMainImage(image);
-        }
     }
 
     // Pomocnicza metoda do usuwania zdjęcia
     public void removeImage(ToolImage image) {
+        boolean wasMain = image.isMain();
+
         images.remove(image);
         image.setTool(null);
 
-        // Jeśli usuwamy główne zdjęcie, wybieramy nowe główne zdjęcie
-        if (image.isMain() && !images.isEmpty()) {
-            setMainImage(images.get(0));
+        // Jeśli usuwamy główne zdjęcie i są jeszcze inne zdjęcia
+        if (wasMain && !images.isEmpty()) {
+            // Ustaw pierwsze dostępne zdjęcie jako główne
+            ToolImage newMainImage = images.get(0);
+            newMainImage.setMain(true);
+            this.mainImageUrl = newMainImage.getUrl();
         } else if (images.isEmpty()) {
-            mainImageUrl = null;
+            // Jeśli nie ma więcej zdjęć, wyczyść URL głównego zdjęcia
+            this.mainImageUrl = null;
         }
     }
 
     // Ustawianie głównego zdjęcia
     public void setMainImage(ToolImage newMainImage) {
+        // Sprawdź czy zdjęcie należy do tego narzędzia
+        if (!images.contains(newMainImage)) {
+            throw new IllegalArgumentException("Zdjęcie nie należy do tego narzędzia");
+        }
+
+        // Sprawdź czy to zdjęcie już nie jest główne
+        if (newMainImage.isMain()) {
+            return; // Nie rób nic jeśli już jest główne
+        }
+
         // Zresetowanie flagi głównego zdjęcia dla wszystkich zdjęć
         images.forEach(img -> img.setMain(false));
 

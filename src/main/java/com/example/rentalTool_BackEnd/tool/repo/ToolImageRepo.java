@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface ToolImageRepo extends JpaRepository<ToolImage, Long> {
     List<ToolImage> findByToolId(long toolId);
+
+    long countByToolId(long toolId);
 }

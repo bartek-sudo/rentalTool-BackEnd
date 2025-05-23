@@ -1,9 +1,11 @@
 package com.example.rentalTool_BackEnd.tool.web.requests;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 
-public record ToolCreateRequest(
+public record ToolUpdateRequest(
+        @NotBlank
         String name,
         String description,
         double pricePerDay,

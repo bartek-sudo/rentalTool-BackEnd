@@ -65,8 +65,11 @@ class SecurityConfig {
 
                                         // Tools endpoints
                                         .requestMatchers(POST, "/api/v1/tools/create").authenticated()
+                                        .requestMatchers(PUT, "/api/v1/tools/{id}").authenticated()
+                                        .requestMatchers(PATCH, "/api/v1/tools/{id}/activate").authenticated()
+                                        .requestMatchers(PATCH, "/api/v1/tools/{id}/deactivate").authenticated()
                                         .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
-                                        .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
+//                                        .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/search").permitAll()
                                         .requestMatchers(GET, "/api/v1/tools/{toolId}/availability").permitAll()//zabezpieczyć
 
@@ -114,7 +117,7 @@ class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOriginPatterns(List.of("http://localhost:4200"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);

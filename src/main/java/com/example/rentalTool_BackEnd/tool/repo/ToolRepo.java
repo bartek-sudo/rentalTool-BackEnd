@@ -23,8 +23,8 @@ public class ToolRepo {
         return toolJpaRepo.findById(id);
     }
 
-    public Page<Tool> findAllTools(Pageable pageable){
-        return toolJpaRepo.findAll(pageable);
+    public Page<Tool> findAllActiveTools(Pageable pageable){
+        return toolJpaRepo.findByIsActiveTrue(pageable);
     }
 
     public List<Tool> findToolsByOwnerId(long ownerId) {
@@ -32,7 +32,7 @@ public class ToolRepo {
     }
 
     public Page<Tool> findToolsByNameOrDescription(String name, String description, Pageable pageable) {
-        return toolJpaRepo.findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(name, description, pageable);
+        return toolJpaRepo.findByIsActiveTrueAndNameContainingIgnoreCaseOrIsActiveTrueAndDescriptionContainingIgnoreCase(name, description, pageable);
     }
 
     public Page<Tool> findByOwnerId(long ownerId, Pageable pageable) {

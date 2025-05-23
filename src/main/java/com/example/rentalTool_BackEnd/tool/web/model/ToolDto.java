@@ -10,6 +10,7 @@ public record ToolDto(
         String address,
         double latitude,
         double longitude,
-        String mainImageUrl
+        String mainImageUrl,
+        boolean isActive
 ) {
 }

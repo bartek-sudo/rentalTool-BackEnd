@@ -3,6 +3,7 @@ package com.example.rentalTool_BackEnd.tool.service;
 import com.example.rentalTool_BackEnd.tool.model.Tool;
 import com.example.rentalTool_BackEnd.tool.model.ToolImage;
 import com.example.rentalTool_BackEnd.tool.web.requests.ToolCreateRequest;
+import com.example.rentalTool_BackEnd.tool.web.requests.ToolUpdateRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,9 +16,15 @@ public interface ToolService {
 
     Tool createTool(ToolCreateRequest toolCreateRequest, long ownerId);
 
-    Page<Tool> getAllTools(Pageable pageable);
+    Tool updateTool(long toolId, ToolUpdateRequest toolUpdateRequest, long ownerId);
 
-    Page<Tool> searchTools(String searchTerm, Pageable pageable);
+    Tool deactivateTool(long toolId, long ownerId);
+
+    Tool activateTool(long toolId, long ownerId);
+
+    Page<Tool> getActiveTools(Pageable pageable);
+
+    Page<Tool> searchActiveTools(String searchTerm, Pageable pageable);
 
     Page<Tool> getToolsByOwnerId(long ownerId, Pageable pageable);
 

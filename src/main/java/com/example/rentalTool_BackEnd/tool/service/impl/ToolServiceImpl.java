@@ -2,6 +2,7 @@ package com.example.rentalTool_BackEnd.tool.service.impl;
 
 import com.example.rentalTool_BackEnd.tool.exception.ImageNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.ToolNotFoundException;
+import com.example.rentalTool_BackEnd.tool.exception.UnauthorizedToolAccessException;
 import com.example.rentalTool_BackEnd.tool.model.ToolImage;
 import com.example.rentalTool_BackEnd.tool.repo.ToolImageRepo;
 import com.example.rentalTool_BackEnd.tool.service.mapper.ToolExternalMapper;
@@ -12,7 +13,7 @@ import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import com.example.rentalTool_BackEnd.tool.web.requests.ToolCreateRequest;
-
+import com.example.rentalTool_BackEnd.tool.web.requests.ToolUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -45,15 +46,55 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     }
 
     @Override
-    public Page<Tool> getAllTools(Pageable pageable){
-        return toolRepo.findAllTools(pageable);
+    public Page<Tool> getActiveTools(Pageable pageable){
+        return toolRepo.findAllActiveTools(pageable);
     }
 
     @Override
     public Tool createTool(ToolCreateRequest toolCreateRequest, long ownerId) {
         Category category = Category.valueOf(toolCreateRequest.category());
+        return toolRepo.saveTool(new Tool(toolCreateRequest.name(), toolCreateRequest.description(),
+                toolCreateRequest.pricePerDay(), category, ownerId, toolCreateRequest.address(),
+                toolCreateRequest.latitude(), toolCreateRequest.longitude()));
+    }
 
-        return toolRepo.saveTool(new Tool(toolCreateRequest.name(), toolCreateRequest.description(), toolCreateRequest.pricePerDay(), category, ownerId, toolCreateRequest.address(), toolCreateRequest.latitude(), toolCreateRequest.longitude()));
+    @Override
+    public Tool updateTool(long toolId, ToolUpdateRequest toolUpdateRequest, long ownerId) {
+        Tool tool = getToolById(toolId);
+
+        if (tool.getOwnerId() != ownerId) {
+            throw new UnauthorizedToolAccessException("You are not authorized to update this tool");
+        }
+
+        tool.setName(toolUpdateRequest.name());
+        tool.setDescription(toolUpdateRequest.description());
+        tool.setPricePerDay(toolUpdateRequest.pricePerDay());
+        tool.setCategory(Category.valueOf(toolUpdateRequest.category()));
+        tool.setAddress(toolUpdateRequest.address());
+        tool.setLatitude(toolUpdateRequest.latitude());
+        tool.setLongitude(toolUpdateRequest.longitude());
+
+        return toolRepo.saveTool(tool);
+    }
+
+    @Override
+    public Tool deactivateTool(long toolId, long ownerId) {
+        Tool tool = getToolById(toolId);
+        if (tool.getOwnerId() != ownerId) {
+            throw new UnauthorizedToolAccessException("You can only deactivate your own tools");
+        }
+        tool.setActive(false);
+        return toolRepo.saveTool(tool);
+    }
+
+    @Override
+    public Tool activateTool(long toolId, long ownerId) {
+        Tool tool = getToolById(toolId);
+        if (tool.getOwnerId() != ownerId) {
+            throw new UnauthorizedToolAccessException("You can only activate your own tools");
+        }
+        tool.setActive(true);
+        return toolRepo.saveTool(tool);
     }
 
     @Override
@@ -65,9 +106,8 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     }
 
     @Override
-    public Page<Tool> searchTools(String searchTerm, Pageable pageable) {
-        return toolRepo.findToolsByNameOrDescription(
-                searchTerm, searchTerm, pageable);
+    public Page<Tool> searchActiveTools(String searchTerm, Pageable pageable) {
+        return toolRepo.findToolsByNameOrDescription(searchTerm, searchTerm, pageable);
     }
 
     @Override
@@ -75,12 +115,14 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         return toolRepo.findByOwnerId(ownerId, pageable);
     }
 
-    // Poniżej nowe metody do obsługi zdjęć
+    // Metody do obsługi zdjęć
 
     @Override
     @Transactional
     public ToolImage addImageToTool(long toolId, MultipartFile file, boolean isMain) {
         Tool tool = getToolById(toolId);
+
+        boolean isFirstImage = tool.getImages().isEmpty();
 
         // Zapisz plik
         String fileName = fileStorageService.storeFile(file);
@@ -96,16 +138,31 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         image.setFilename(fileName);
         image.setUrl(fileDownloadUri);
         image.setContentType(file.getContentType());
-        image.setMain(isMain);
         image.setTool(tool);
+
+        // Logika głównego zdjęcia
+        boolean shouldBeMain = isFirstImage || isMain;
+
+        if (shouldBeMain) {
+            // Zresetuj wszystkie inne zdjęcia na false
+            tool.getImages().forEach(img -> img.setMain(false));
+            image.setMain(true);
+            tool.setMainImageUrl(image.getUrl());
+        } else {
+            image.setMain(false);
+        }
 
         // Dodaj zdjęcie do narzędzia
         tool.addImage(image);
 
-        // Zapisz zaktualizowane narzędzie
-        toolRepo.saveTool(tool);
+        // Zapisz narzędzie
+        Tool savedTool = toolRepo.saveTool(tool);
 
-        return image;
+        // Znajdź i zwróć zapisane zdjęcie
+        return savedTool.getImages().stream()
+                .filter(img -> img.getFilename().equals(fileName))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Nie udało się znaleźć zapisanego zdjęcia"));
     }
 
     @Override
@@ -119,7 +176,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
                 .findFirst()
                 .orElseThrow(() -> new ImageNotFoundException("Image not found with id: " + imageId));
 
-        // Usuń zdjęcie z narzędzia
+        // Usuń zdjęcie z narzędzia (metoda removeImage w Tool obsługuje logikę głównego zdjęcia)
         tool.removeImage(imageToRemove);
 
         // Zapisz zmiany
@@ -140,7 +197,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
                 .findFirst()
                 .orElseThrow(() -> new ImageNotFoundException("Image not found with id: " + imageId));
 
-        // Ustaw jako główne
+        // Użyj metody z modelu Tool
         tool.setMainImage(newMainImage);
 
         // Zapisz zmiany
@@ -160,6 +217,4 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         return toolImageRepo.findById(imageId)
                 .orElseThrow(() -> new ImageNotFoundException("Image not found with id: " + imageId));
     }
-
-
 }

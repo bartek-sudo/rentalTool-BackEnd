@@ -36,11 +36,17 @@ class ReservationServiceImpl implements ReservationService {
 
     @Override
     public Reservation createReservation(long toolId, long renterId, LocalDate startDate, LocalDate endDate) {
+
+        final ToolExternalDto tool = toolExternalService.getToolDtoById(toolId);
+
+        // Sprawdzenie czy narzędzie jest aktywne
+        if (!tool.isActive()) {
+            throw new ToolNotAvailableException("Tool is no longer available for booking");
+        }
+
         if (!isToolAvailable(toolId, startDate, endDate)) {
             throw new ToolNotAvailableException("Tool is not available for the selected dates");
         }
-
-        final ToolExternalDto tool = toolExternalService.getToolDtoById(toolId);
 
         final Reservation reservation = new Reservation(toolId, renterId, startDate, endDate);
 

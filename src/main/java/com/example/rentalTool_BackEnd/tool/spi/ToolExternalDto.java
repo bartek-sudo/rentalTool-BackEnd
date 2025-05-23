@@ -6,6 +6,7 @@ public record ToolExternalDto(
         long id,
         long ownerId,
         double pricePerDay,
-        Category category
+        Category category,
+        boolean isActive
 ) {
 }

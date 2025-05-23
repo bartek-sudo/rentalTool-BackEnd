@@ -17,7 +17,8 @@ public class ToolDtoMapper {
                 tool.getAddress(),
                 tool.getLatitude(),
                 tool.getLongitude(),
-                tool.getMainImageUrl()
+                tool.getMainImageUrl(),
+                tool.isActive()
         );
     }
 }
