@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.user.web.model;
 
 public record UserDto(
+        long id,
         String firstName,
         String lastName,
         String email,
@@ -9,6 +10,8 @@ public record UserDto(
         String createdAt,
         String updatedAt,
         String blockedAt,
-        String verifiedAt
+        String verifiedAt,
+        String userType
+
 ) {
 }

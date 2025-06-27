@@ -11,6 +11,7 @@ public class UserDtoMapper {
     public UserDto toDto(User user){
 
         return new UserDto(
+                user.getId(),
                 user.getFirstName(),
                 user.getLastName(),
                 user.getEmail(),
@@ -19,7 +20,8 @@ public class UserDtoMapper {
                 TimeUtil.getTimeInStandardFormat(user.getCreatedAt()),
                 TimeUtil.getTimeInStandardFormat(user.getUpdatedAt()),
                 TimeUtil.getTimeInStandardFormat(user.getBlockedAt()),
-                TimeUtil.getTimeInStandardFormat(user.getVerifiedAt())
+                TimeUtil.getTimeInStandardFormat(user.getVerifiedAt()),
+                user.getUserType().name()
         );
     }
 }

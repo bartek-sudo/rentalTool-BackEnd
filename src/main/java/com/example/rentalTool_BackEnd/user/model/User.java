@@ -2,16 +2,14 @@ package com.example.rentalTool_BackEnd.user.model;
 
 import com.example.rentalTool_BackEnd.user.model.enums.UserType;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.Instant;
 
 @Entity
 @Table(name = "users")
 @Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
@@ -29,6 +27,7 @@ public class User {
 
     private String password;
 
+    @Column(nullable = false)
     private boolean blocked;
 
     private boolean verified;

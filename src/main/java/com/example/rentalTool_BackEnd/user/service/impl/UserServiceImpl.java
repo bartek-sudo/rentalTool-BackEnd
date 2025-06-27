@@ -10,6 +10,8 @@ import com.example.rentalTool_BackEnd.user.service.UserService;
 import com.example.rentalTool_BackEnd.user.web.requests.ChangePasswordRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -68,4 +70,39 @@ class UserServiceImpl implements UserService {
         user.changePassword(passwordEncoder.encode(changePasswordRequest.newPassword()));
         updateUser(user);
     }
+
+    @Override
+    public Page<User> getAllUsers(Pageable pageable, String search) {
+        if (search != null && !search.trim().isEmpty()) {
+            return userRepo.findUsersBySearch(search.trim(), pageable);
+        }
+        return userRepo.findAll(pageable);
+    }
+
+    @Override
+    public User blockUser(Long id) {
+        User user = getUserById(id);
+        user.setBlocked(true); // zakładamy że masz pole "blocked" w encji User
+        return updateUser(user);
+    }
+
+    @Override
+    public User unblockUser(Long id) {
+        User user = getUserById(id);
+        user.setBlocked(false);
+        return updateUser(user);
+    }
+
+    @Override
+    public User changeUserRole(Long id, String role) {
+        User user = getUserById(id);
+        try {
+            UserType newRole = UserType.valueOf(role.toUpperCase());
+            user.setUserType(newRole);
+            return updateUser(user);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid role: " + role);
+        }
+    }
+
 }

@@ -62,6 +62,10 @@ class SecurityConfig {
                                         .requestMatchers(POST, "/api/v1/auth/change-password").authenticated()
 
                                         .requestMatchers(GET, "/api/v1/user/{id}").permitAll()
+                                        .requestMatchers(GET, "/api/v1/user/admin").hasAuthority("ADMIN")
+                                        .requestMatchers(PATCH, "/api/v1/user/admin/{id}/block").hasAuthority("ADMIN")
+                                        .requestMatchers(PATCH, "/api/v1/user/admin/{id}/unblock").hasAuthority("ADMIN")
+                                        .requestMatchers(PATCH, "/api/v1/user/admin/{id}/role").hasAuthority("ADMIN")
 
                                         // Tools endpoints
                                         .requestMatchers(POST, "/api/v1/tools/create").authenticated()
@@ -93,6 +97,8 @@ class SecurityConfig {
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()
                                         .requestMatchers("/swagger-ui.html").permitAll()
+
+
                 )
                 .authenticationManager(authenticationManagerBuilder.build())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

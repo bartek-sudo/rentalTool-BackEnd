@@ -2,6 +2,8 @@ package com.example.rentalTool_BackEnd.user.repo;
 
 import com.example.rentalTool_BackEnd.user.model.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -33,4 +35,11 @@ public class UserRepo {
         return userJpaRepo.save(user);
     }
 
+    public Page<User> findAll(Pageable pageable) {
+        return userJpaRepo.findAll(pageable);
+    }
+
+    public Page<User> findUsersBySearch(String search, Pageable pageable) {
+        return userJpaRepo.findUsersBySearch(search, pageable);
+    }
 }
