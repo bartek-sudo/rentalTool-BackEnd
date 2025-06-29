@@ -24,17 +24,17 @@ public class ToolRepo {
         return toolJpaRepo.findById(id);
     }
 
-    public Page<Tool> findAllActiveTools(Pageable pageable){
-        return toolJpaRepo.findByIsActiveTrue(pageable);
-    }
+//    public Page<Tool> findAllActiveTools(Pageable pageable){
+//        return toolJpaRepo.findByIsActiveTrue(pageable);
+//    }
 
     public List<Tool> findToolsByOwnerId(long ownerId) {
         return toolJpaRepo.findByOwnerId(ownerId);
     }
 
-    public Page<Tool> findToolsByNameOrDescription(String name, String description, Pageable pageable) {
-        return toolJpaRepo.findByIsActiveTrueAndNameContainingIgnoreCaseOrIsActiveTrueAndDescriptionContainingIgnoreCase(name, description, pageable);
-    }
+//    public Page<Tool> findToolsByNameOrDescription(String name, String description, Pageable pageable) {
+//        return toolJpaRepo.findByIsActiveTrueAndNameContainingIgnoreCaseOrIsActiveTrueAndDescriptionContainingIgnoreCase(name, description, pageable);
+//    }
 
     public Page<Tool> findByOwnerId(long ownerId, Pageable pageable) {
         return toolJpaRepo.findByOwnerId(ownerId, pageable);

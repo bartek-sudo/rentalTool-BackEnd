@@ -39,7 +39,7 @@ public interface ToolService {
 
     List<ToolImage> getToolImages(long toolId);
 
-    ToolImage getImageById(long imageId);
+//    ToolImage getImageById(long imageId);
 
     Page<Tool> getToolsPendingModeration(Pageable pageable);
 

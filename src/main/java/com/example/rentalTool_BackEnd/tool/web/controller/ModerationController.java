@@ -14,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +25,6 @@ import static org.springframework.http.HttpStatus.OK;
 @RestController
 @RequestMapping("/api/v1/moderation")
 @RequiredArgsConstructor
-//@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')") // Tylko admin i moderator //todo
 public class ModerationController {
 
     private final ToolService toolService;
@@ -171,7 +169,6 @@ public class ModerationController {
      * Oznacza narzędzie jako wymagające ponownej moderacji
      */
     @PostMapping("/{toolId}/require-remoderation")
-    //@PreAuthorize("hasRole('ADMIN')") // Tylko admin może wymagać ponownej moderacji todo
     public ResponseEntity<HttpResponse> requireRemoderation(
             @PathVariable("toolId") long toolId,
             @Valid @RequestBody ModerationRequest moderationRequest

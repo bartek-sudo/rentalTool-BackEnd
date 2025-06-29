@@ -45,11 +45,11 @@ public class Tool {
     private Instant createdAt;
     private Instant updatedAt;
 
-    private boolean isActive = true;
+    private boolean isActive;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ModerationStatus moderationStatus = ModerationStatus.PENDING;
+    private ModerationStatus moderationStatus;
 
     private Long moderatorId; // ID moderatora który przejrzał narzędzie
     private Instant moderatedAt; // kiedy zostało zmoderowane
