@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.tool.model;
 
 import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -46,6 +47,14 @@ public class Tool {
 
     private boolean isActive = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ModerationStatus moderationStatus = ModerationStatus.PENDING;
+
+    private Long moderatorId; // ID moderatora który przejrzał narzędzie
+    private Instant moderatedAt; // kiedy zostało zmoderowane
+    private String moderationComment; // komentarz moderatora (opcjonalny)
+
     public Tool(String name, String description, double pricePerDay, Category category, long owner, String address, Double latitude, Double longitude) {
         this.name = name;
         this.description = description;
@@ -58,6 +67,7 @@ public class Tool {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
         this.isActive = true;
+        this.moderationStatus = ModerationStatus.PENDING;
     }
 
     // Pomocnicza metoda do dodawania zdjęcia
@@ -108,6 +118,63 @@ public class Tool {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = Instant.now();
+    }
+
+    // ===== METODY DO MODERACJI =====
+
+    /**
+     * Zatwierdza narzędzie przez moderatora
+     */
+    public void approve(Long moderatorId, String comment) {
+        this.moderationStatus = ModerationStatus.APPROVED;
+        this.moderatorId = moderatorId;
+        this.moderatedAt = Instant.now();
+        this.moderationComment = comment;
+        this.isActive = true; // zatwierdzone narzędzie jest automatycznie aktywne
+    }
+
+    /**
+     * Odrzuca narzędzie przez moderatora
+     */
+    public void reject(Long moderatorId, String comment) {
+        this.moderationStatus = ModerationStatus.REJECTED;
+        this.moderatorId = moderatorId;
+        this.moderatedAt = Instant.now();
+        this.moderationComment = comment;
+        this.isActive = false; // odrzucone narzędzie jest nieaktywne
+    }
+
+    /**
+     * Oznacza narzędzie jako wymagające ponownej moderacji
+     */
+    public void requiresRemoderation(String reason) {
+        this.moderationStatus = ModerationStatus.PENDING;
+        this.moderatorId = null;
+        this.moderatedAt = null;
+        this.moderationComment = reason;
+        this.isActive = false; // podczas ponownej moderacji narzędzie jest nieaktywne
+    }
+
+    /**
+     * Sprawdza czy narzędzie jest widoczne publicznie
+     * (zatwierdzone przez moderatora i aktywne)
+     */
+    public boolean isPubliclyVisible() {
+        return moderationStatus == ModerationStatus.APPROVED && isActive;
+    }
+
+    /**
+     * Sprawdza czy narzędzie czeka na moderację
+     */
+    public boolean isPendingModeration() {
+        return moderationStatus == ModerationStatus.PENDING;
+    }
+
+    /**
+     * Sprawdza czy narzędzie zostało odrzucone
+     */
+    public boolean isRejected() {
+        return moderationStatus == ModerationStatus.REJECTED;
     }
 
 }

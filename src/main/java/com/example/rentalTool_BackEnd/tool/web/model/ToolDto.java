@@ -11,6 +11,9 @@ public record ToolDto(
         double latitude,
         double longitude,
         String mainImageUrl,
-        boolean isActive
+        boolean isActive,
+        String moderationStatus,
+        String createdAt,
+        String moderationComment
 ) {
 }

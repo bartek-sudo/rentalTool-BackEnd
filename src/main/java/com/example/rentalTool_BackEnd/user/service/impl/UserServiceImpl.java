@@ -16,6 +16,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 @Service
 @RequiredArgsConstructor
 class UserServiceImpl implements UserService {
@@ -68,6 +70,7 @@ class UserServiceImpl implements UserService {
         }
 
         user.changePassword(passwordEncoder.encode(changePasswordRequest.newPassword()));
+        user.setUpdatedAt(Instant.now());
         updateUser(user);
     }
 
@@ -82,7 +85,8 @@ class UserServiceImpl implements UserService {
     @Override
     public User blockUser(Long id) {
         User user = getUserById(id);
-        user.setBlocked(true); // zakładamy że masz pole "blocked" w encji User
+        user.setBlocked(true);
+        user.setBlockedAt(Instant.now());
         return updateUser(user);
     }
 
@@ -90,6 +94,7 @@ class UserServiceImpl implements UserService {
     public User unblockUser(Long id) {
         User user = getUserById(id);
         user.setBlocked(false);
+        user.setUpdatedAt(Instant.now());
         return updateUser(user);
     }
 
@@ -99,6 +104,7 @@ class UserServiceImpl implements UserService {
         try {
             UserType newRole = UserType.valueOf(role.toUpperCase());
             user.setUserType(newRole);
+            user.setUpdatedAt(Instant.now());
             return updateUser(user);
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid role: " + role);

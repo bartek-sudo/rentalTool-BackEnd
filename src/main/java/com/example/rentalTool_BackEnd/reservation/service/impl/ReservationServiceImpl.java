@@ -9,6 +9,8 @@ import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -111,7 +113,10 @@ class ReservationServiceImpl implements ReservationService {
         return reservationRepo.saveReservation(reservation);
     }
 
-
+    @Override
+    public Page<Reservation> getAllReservations(Pageable pageable) {
+        return reservationRepo.findAll(pageable);
+    }
 
 
 }

@@ -1,0 +1,191 @@
+package com.example.rentalTool_BackEnd.tool.web.controller;
+
+import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
+import com.example.rentalTool_BackEnd.shared.util.TimeUtil;
+import com.example.rentalTool_BackEnd.tool.model.Tool;
+import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
+import com.example.rentalTool_BackEnd.tool.service.ToolService;
+import com.example.rentalTool_BackEnd.tool.web.mapper.ToolDtoMapper;
+import com.example.rentalTool_BackEnd.tool.web.requests.ModerationRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+import static org.springframework.http.HttpStatus.OK;
+
+@RestController
+@RequestMapping("/api/v1/moderation")
+@RequiredArgsConstructor
+//@PreAuthorize("hasRole('ADMIN') or hasRole('MODERATOR')") // Tylko admin i moderator //todo
+public class ModerationController {
+
+    private final ToolService toolService;
+    private final ToolDtoMapper toolDtoMapper;
+
+    /**
+     * Pobiera narzędzia oczekujące na moderację
+     */
+    @GetMapping("/pending")
+    public ResponseEntity<HttpResponse> getPendingTools(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "createdAt") String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = "desc") String sortDirection
+    ) {
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()
+        );
+
+        Page<Tool> toolsPage = toolService.getToolsPendingModeration(pageable);
+
+        return ResponseEntity.status(OK)
+                .body(HttpResponse.builder()
+                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                        .statusCode(OK.value())
+                        .httpStatus(OK)
+                        .reason("Pending tools request")
+                        .message("Tools awaiting moderation")
+                        .data(Map.of(
+                                "tools", toolsPage.stream().map(toolDtoMapper::toDto).toList(),
+                                "currentPage", toolsPage.getNumber(),
+                                "totalPages", toolsPage.getTotalPages(),
+                                "totalItems", toolsPage.getTotalElements(),
+                                "pageSize", toolsPage.getSize()
+                        ))
+                        .build());
+    }
+
+    /**
+     * Pobiera narzędzia według statusu moderacji
+     */
+    @GetMapping("/status/{status}")
+    public ResponseEntity<HttpResponse> getToolsByStatus(
+            @PathVariable("status") String status,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size,
+            @RequestParam(value = "sortBy", defaultValue = "moderatedAt") String sortBy,
+            @RequestParam(value = "sortDirection", defaultValue = "desc") String sortDirection
+    ) {
+        try {
+            ModerationStatus moderationStatus = ModerationStatus.valueOf(status.toUpperCase());
+
+            Pageable pageable = PageRequest.of(
+                    page,
+                    size,
+                    sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()
+            );
+
+            Page<Tool> toolsPage = toolService.getToolsByModerationStatus(moderationStatus, pageable);
+
+            return ResponseEntity.status(OK)
+                    .body(HttpResponse.builder()
+                            .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                            .statusCode(OK.value())
+                            .httpStatus(OK)
+                            .reason("Tools by status request")
+                            .message("Tools with status: " + status)
+                            .data(Map.of(
+                                    "tools", toolsPage.stream().map(toolDtoMapper::toDto).toList(),
+                                    "currentPage", toolsPage.getNumber(),
+                                    "totalPages", toolsPage.getTotalPages(),
+                                    "totalItems", toolsPage.getTotalElements(),
+                                    "pageSize", toolsPage.getSize(),
+                                    "status", status
+                            ))
+                            .build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(HttpResponse.builder()
+                            .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                            .statusCode(400)
+                            .httpStatus(org.springframework.http.HttpStatus.BAD_REQUEST)
+                            .reason("Invalid moderation status")
+                            .message("Valid statuses: PENDING, APPROVED, REJECTED")
+                            .build());
+        }
+    }
+
+    /**
+     * Zatwierdza narzędzie
+     */
+    @PostMapping("/{toolId}/approve")
+    public ResponseEntity<HttpResponse> approveTool(
+            @PathVariable("toolId") long toolId,
+            @Valid @RequestBody ModerationRequest moderationRequest,
+            Authentication authentication
+    ) {
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long moderatorId = jwt.getClaim("user_id");
+
+        Tool approvedTool = toolService.approveTool(toolId, moderatorId, moderationRequest.comment());
+
+        return ResponseEntity.status(OK)
+                .body(HttpResponse.builder()
+                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                        .statusCode(OK.value())
+                        .httpStatus(OK)
+                        .reason("Tool approval request")
+                        .message("Tool approved successfully")
+                        .data(Map.of("Tool", toolDtoMapper.toDto(approvedTool)))
+                        .build());
+    }
+
+    /**
+     * Odrzuca narzędzie
+     */
+    @PostMapping("/{toolId}/reject")
+    public ResponseEntity<HttpResponse> rejectTool(
+            @PathVariable("toolId") long toolId,
+            @Valid @RequestBody ModerationRequest moderationRequest,
+            Authentication authentication
+    ) {
+        final Jwt jwt = (Jwt) authentication.getPrincipal();
+        final long moderatorId = jwt.getClaim("user_id");
+
+        Tool rejectedTool = toolService.rejectTool(toolId, moderatorId, moderationRequest.comment());
+
+        return ResponseEntity.status(OK)
+                .body(HttpResponse.builder()
+                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                        .statusCode(OK.value())
+                        .httpStatus(OK)
+                        .reason("Tool rejection request")
+                        .message("Tool rejected successfully")
+                        .data(Map.of("Tool", toolDtoMapper.toDto(rejectedTool)))
+                        .build());
+    }
+
+    /**
+     * Oznacza narzędzie jako wymagające ponownej moderacji
+     */
+    @PostMapping("/{toolId}/require-remoderation")
+    //@PreAuthorize("hasRole('ADMIN')") // Tylko admin może wymagać ponownej moderacji todo
+    public ResponseEntity<HttpResponse> requireRemoderation(
+            @PathVariable("toolId") long toolId,
+            @Valid @RequestBody ModerationRequest moderationRequest
+    ) {
+        Tool tool = toolService.requireRemoderation(toolId, moderationRequest.comment());
+
+        return ResponseEntity.status(OK)
+                .body(HttpResponse.builder()
+                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                        .statusCode(OK.value())
+                        .httpStatus(OK)
+                        .reason("Remoderation requirement request")
+                        .message("Tool marked for remoderation")
+                        .data(Map.of("Tool", toolDtoMapper.toDto(tool)))
+                        .build());
+    }
+}

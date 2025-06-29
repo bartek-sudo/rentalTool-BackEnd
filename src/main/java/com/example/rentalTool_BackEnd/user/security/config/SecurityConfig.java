@@ -93,6 +93,14 @@ class SecurityConfig {
                                         .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/finish").authenticated()
                                         .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/cancel").authenticated()
                                         .requestMatchers(GET, "/api/v1/reservations/{reservationId}").authenticated()
+                                        .requestMatchers(GET, "/api/v1/reservations/all").hasAuthority("MODERATOR")
+
+                                        // Endpoints dla moderatora
+                                        .requestMatchers(GET, "/api/v1/moderation/pending").hasAnyAuthority("MODERATOR")
+                                        .requestMatchers(GET, "/api/v1/moderation/status/{status}").hasAnyAuthority("MODERATOR")
+                                        .requestMatchers(POST, "/api/v1/moderation/{toolId}/approve").hasAnyAuthority("MODERATOR")
+                                        .requestMatchers(POST, "/api/v1/moderation/{toolId}/reject").hasAnyAuthority("MODERATOR")
+                                        .requestMatchers(POST, "/api/v1/moderation/{toolId}/require-remoderation").hasAuthority("ADMIN")
 
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()

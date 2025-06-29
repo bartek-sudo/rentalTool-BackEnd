@@ -30,8 +30,35 @@ public class ToolController {
     private final ToolDtoMapper toolDtoMapper;
 
     @GetMapping("/{id}")
-    public ResponseEntity<HttpResponse> getToolById(@PathVariable("id") long id) {
+    public ResponseEntity<HttpResponse> getToolById(
+            @PathVariable("id") long id,
+            Authentication authentication) {
         final Tool tool = toolService.getToolById(id);
+
+        boolean isOwner = false;
+        boolean isModerator = false;
+        if (authentication != null) {
+            final Jwt jwt = (Jwt) authentication.getPrincipal();
+            final long userId = jwt.getClaim("user_id");
+//            final String userRole = jwt.getClaim("authorities");
+
+            isOwner = tool.getOwnerId() == userId;
+//            isModerator = userRole.equals("MODERATOR") || userRole.equals("ADMIN");
+            isModerator = authentication.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("MODERATOR") || a.getAuthority().equals("ADMIN"));
+        }
+
+        if (!tool.isPubliclyVisible() && !(isOwner || isModerator)) {
+            return ResponseEntity.status(404)
+                    .body(HttpResponse.builder()
+                            .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                            .statusCode(404)
+                            .httpStatus(org.springframework.http.HttpStatus.NOT_FOUND)
+                            .reason("Tool not found or not available")
+                            .message("Tool is not publicly available")
+                            .build());
+        }
+
         return ResponseEntity.status(OK)
                 .body(HttpResponse.builder()
                         .timeStamp(TimeUtil.getCurrentTimeWithFormat())

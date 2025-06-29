@@ -8,7 +8,8 @@ import java.util.List;
 public enum UserType {
 
     USER(List.of("USER")),
-    ADMIN(List.of("USER", "ADMIN"));
+    MODERATOR(List.of("USER", "MODERATOR")),
+    ADMIN(List.of("USER", "MODERATOR", "ADMIN"));
 
     private final List<String> authorities;
 

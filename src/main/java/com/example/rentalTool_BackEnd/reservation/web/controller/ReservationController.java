@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.reservation.web.controller;
 
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
+import com.example.rentalTool_BackEnd.reservation.model.enums.ReservationStatus;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
 import com.example.rentalTool_BackEnd.reservation.web.mapper.ReservationMapper;
 import com.example.rentalTool_BackEnd.reservation.web.requests.ReservationCreateRequest;
@@ -8,6 +9,8 @@ import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -117,6 +120,16 @@ public class ReservationController {
                             .build());
         }
 
+        if (reservation.getStatus() != ReservationStatus.PENDING) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(HttpResponse.builder()
+                            .statusCode(HttpStatus.BAD_REQUEST.value())
+                            .httpStatus(HttpStatus.BAD_REQUEST)
+                            .reason("Bad Request")
+                            .message("Reservation is not in pending status")
+                            .build());
+        }
+
         reservation = reservationService.confirmReservation(reservationId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(HttpResponse.builder()
@@ -147,6 +160,16 @@ public class ReservationController {
                             .build());
         }
 
+        if (reservation.getStatus() != ReservationStatus.CONFIRMED) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(HttpResponse.builder()
+                            .statusCode(HttpStatus.BAD_REQUEST.value())
+                            .httpStatus(HttpStatus.BAD_REQUEST)
+                            .reason("Bad Request")
+                            .message("Reservation is not in confirmed status")
+                            .build());
+        }
+
         reservation = reservationService.payReservation(reservationId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(HttpResponse.builder()
@@ -167,13 +190,25 @@ public class ReservationController {
         final long userId = jwt.getClaim("user_id");
         Reservation reservation = reservationService.getReservationById(reservationId);
 
-        if (reservation.getRenterId() != userId) {
+        final ToolExternalDto tool = toolExternalService.getToolDtoById(reservation.getToolId());
+
+        if (tool.ownerId() != userId) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(HttpResponse.builder()
                             .statusCode(HttpStatus.FORBIDDEN.value())
                             .httpStatus(HttpStatus.FORBIDDEN)
                             .reason("Forbidden")
-                            .message("You are not the renter of this tool")
+                            .message("You are not the owner of this tool")
+                            .build());
+        }
+
+        if (reservation.getStatus() != ReservationStatus.PAID) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(HttpResponse.builder()
+                            .statusCode(HttpStatus.BAD_REQUEST.value())
+                            .httpStatus(HttpStatus.BAD_REQUEST)
+                            .reason("Bad Request")
+                            .message("Reservation is not in paid status")
                             .build());
         }
 
@@ -204,6 +239,17 @@ public class ReservationController {
                             .httpStatus(HttpStatus.FORBIDDEN)
                             .reason("Forbidden")
                             .message("You are not the renter of this tool")
+                            .build());
+        }
+
+        if (reservation.getStatus() != ReservationStatus.PENDING &&
+                reservation.getStatus() != ReservationStatus.CONFIRMED) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(HttpResponse.builder()
+                            .statusCode(HttpStatus.BAD_REQUEST.value())
+                            .httpStatus(HttpStatus.BAD_REQUEST)
+                            .reason("Bad Request")
+                            .message("Reservation is not in pending or confirmed status")
                             .build());
         }
 
@@ -251,7 +297,28 @@ public class ReservationController {
 
     }
 
+    @GetMapping("/all")
+    public ResponseEntity<HttpResponse> getAllReservations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
 
+        Page<Reservation> reservations = reservationService.getAllReservations(PageRequest.of(page, size));
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("All reservations")
+                        .message("All reservations")
+                        .data(Map.of(
+                                "reservations", reservations.getContent().stream()
+                                        .map(reservationMapper::toDto)
+                                        .toList(),
+                                "totalPages", reservations.getTotalPages(),
+                                "totalItems", reservations.getTotalElements(),
+                                "currentPage", reservations.getNumber()
+                        ))
+                        .build());
+    }
 
 
 

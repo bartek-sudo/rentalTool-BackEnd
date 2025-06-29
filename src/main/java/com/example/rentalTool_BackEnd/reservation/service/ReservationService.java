@@ -1,6 +1,8 @@
 package com.example.rentalTool_BackEnd.reservation.service;
 
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -24,4 +26,6 @@ public interface ReservationService {
     Reservation finishReservation(long reservationId);
 
     Reservation cancelReservation(long reservationId);
+
+    Page<Reservation> getAllReservations(Pageable pageable);
 }

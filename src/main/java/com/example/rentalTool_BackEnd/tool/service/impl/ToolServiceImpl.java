@@ -4,6 +4,7 @@ import com.example.rentalTool_BackEnd.tool.exception.ImageNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.ToolNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.UnauthorizedToolAccessException;
 import com.example.rentalTool_BackEnd.tool.model.ToolImage;
+import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import com.example.rentalTool_BackEnd.tool.repo.ToolImageRepo;
 import com.example.rentalTool_BackEnd.tool.service.mapper.ToolExternalMapper;
 import com.example.rentalTool_BackEnd.tool.model.Tool;
@@ -46,10 +47,10 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     }
 
     @Override
-    public Page<Tool> getActiveTools(Pageable pageable){
-        return toolRepo.findAllActiveTools(pageable);
+    public Page<Tool> getActiveTools(Pageable pageable) {
+        // Zwraca tylko zatwierdzone i aktywne narzędzia
+        return toolRepo.findAllApprovedAndActiveTools(pageable);
     }
-
     @Override
     public Tool createTool(ToolCreateRequest toolCreateRequest, long ownerId) {
         Category category = Category.valueOf(toolCreateRequest.category());
@@ -74,6 +75,8 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         tool.setLatitude(toolUpdateRequest.latitude());
         tool.setLongitude(toolUpdateRequest.longitude());
 
+        tool.requiresRemoderation("Tool updated by owner");
+
         return toolRepo.saveTool(tool);
     }
 
@@ -93,6 +96,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         if (tool.getOwnerId() != ownerId) {
             throw new UnauthorizedToolAccessException("You can only activate your own tools");
         }
+
         tool.setActive(true);
         return toolRepo.saveTool(tool);
     }
@@ -107,7 +111,8 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
 
     @Override
     public Page<Tool> searchActiveTools(String searchTerm, Pageable pageable) {
-        return toolRepo.findToolsByNameOrDescription(searchTerm, searchTerm, pageable);
+        // Wyszukuje tylko zatwierdzone i aktywne narzędzia
+        return toolRepo.findApprovedToolsByNameOrDescription(searchTerm, searchTerm, pageable);
     }
 
     @Override
@@ -217,4 +222,53 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         return toolImageRepo.findById(imageId)
                 .orElseThrow(() -> new ImageNotFoundException("Image not found with id: " + imageId));
     }
+
+    // ===== IMPLEMENTACJA METOD MODERACJI =====
+
+    @Override
+    public Page<Tool> getToolsPendingModeration(Pageable pageable) {
+        return toolRepo.findByModerationStatus(ModerationStatus.PENDING, pageable);
+    }
+
+    @Override
+    public Page<Tool> getToolsByModerationStatus(ModerationStatus status, Pageable pageable) {
+        return toolRepo.findByModerationStatus(status, pageable);
+    }
+
+    @Transactional
+    @Override
+    public Tool approveTool(long toolId, long moderatorId, String comment) {
+        Tool tool = getToolById(toolId);
+
+        tool.approve(moderatorId, comment);
+        return toolRepo.saveTool(tool);
+    }
+
+    @Transactional
+    @Override
+    public Tool rejectTool(long toolId, long moderatorId, String comment) {
+        Tool tool = getToolById(toolId);
+
+        if (comment == null || comment.trim().isEmpty()) {
+            throw new IllegalArgumentException("Rejection comment is required");
+        }
+
+        tool.reject(moderatorId, comment);
+        return toolRepo.saveTool(tool);
+    }
+
+    @Transactional
+    @Override
+    public Tool requireRemoderation(long toolId, String reason) {
+        Tool tool = getToolById(toolId);
+
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new IllegalArgumentException("Remoderation reason is required");
+        }
+
+        tool.requiresRemoderation(reason);
+        return toolRepo.saveTool(tool);
+    }
+
+
 }

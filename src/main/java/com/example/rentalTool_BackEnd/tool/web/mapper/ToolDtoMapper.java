@@ -18,7 +18,10 @@ public class ToolDtoMapper {
                 tool.getLatitude(),
                 tool.getLongitude(),
                 tool.getMainImageUrl(),
-                tool.isActive()
+                tool.isActive(),
+                tool.getModerationStatus().name(),
+                tool.getCreatedAt().toString(),
+                tool.getModerationComment() != null ? tool.getModerationComment() : ""
         );
     }
 }

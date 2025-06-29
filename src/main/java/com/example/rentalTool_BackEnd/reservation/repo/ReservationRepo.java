@@ -3,6 +3,8 @@ package com.example.rentalTool_BackEnd.reservation.repo;
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
 import com.example.rentalTool_BackEnd.reservation.model.enums.ReservationStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -38,5 +40,9 @@ public class ReservationRepo {
 
     public Optional<Reservation> findReservationById(long id) {
         return reservationJpaRepo.findById(id);
+    }
+
+    public Page<Reservation> findAll(Pageable pageable) {
+        return reservationJpaRepo.findAll(pageable);
     }
 }
