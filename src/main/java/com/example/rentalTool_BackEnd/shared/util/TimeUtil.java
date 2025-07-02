@@ -9,6 +9,9 @@ public class TimeUtil {
     private final static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
 
     public static String getTimeInStandardFormat(Instant instant) {
+        if (instant == null) {
+            return null;
+        }
         return instant.atZone(ZoneId.systemDefault()).format(formatter);
     }
 

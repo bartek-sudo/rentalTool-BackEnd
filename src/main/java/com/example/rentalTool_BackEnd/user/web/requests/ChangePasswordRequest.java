@@ -4,11 +4,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 public record ChangePasswordRequest(
-        @NotBlank
-        @Size(min = 6,max = 256)
+        @NotBlank(message = "Stare hasło jest wymagane")
+        @Size(min = 6, max = 256, message = "Hasło musi mieć od 6 do 256 znaków")
         String oldPassword,
-        @NotBlank
-        @Size(min = 6,max = 256)
+
+        @NotBlank(message = "Nowe hasło jest wymagane")
+        @Size(min = 6, max = 256, message = "Hasło musi mieć od 6 do 256 znaków")
         String newPassword
 ) {
 }

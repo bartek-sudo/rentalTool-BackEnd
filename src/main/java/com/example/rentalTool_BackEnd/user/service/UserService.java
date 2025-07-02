@@ -9,11 +9,15 @@ import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.Optional;
+
 public interface UserService {
 
 //    User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException;
 
     User getUserByEmail(String email) throws UserNotFoundException;
+
+    Optional<User> findOptionalByEmail(String email);
 
     User getUserById(long id) throws UserNotFoundException;
 

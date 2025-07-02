@@ -63,6 +63,7 @@ class SecurityConfig {
 
                                         .requestMatchers(GET, "/api/v1/user/{id}").permitAll()
                                         .requestMatchers(GET, "/api/v1/user/admin").hasAuthority("ADMIN")
+                                        .requestMatchers(PUT, "/api/v1/user/me").authenticated()
                                         .requestMatchers(PATCH, "/api/v1/user/admin/{id}/block").hasAuthority("ADMIN")
                                         .requestMatchers(PATCH, "/api/v1/user/admin/{id}/unblock").hasAuthority("ADMIN")
                                         .requestMatchers(PATCH, "/api/v1/user/admin/{id}/role").hasAuthority("ADMIN")

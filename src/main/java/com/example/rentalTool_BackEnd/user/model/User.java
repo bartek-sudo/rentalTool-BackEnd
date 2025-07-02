@@ -58,9 +58,9 @@ public class User {
 
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
-        this.changedPasswordAt = Instant.now();
-        this.blockedAt = Instant.now();
-        this.verifiedAt = Instant.now();
+        this.changedPasswordAt = null;
+        this.blockedAt = null;
+        this.verifiedAt = null;
 
     }
 

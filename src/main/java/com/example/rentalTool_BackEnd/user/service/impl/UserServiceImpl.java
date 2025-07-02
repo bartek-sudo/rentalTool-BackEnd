@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +34,11 @@ class UserServiceImpl implements UserService {
     @Override
     public User getUserByEmail(String email) throws UserNotFoundException {
         return userRepo.findUserByEmail(email).orElseThrow(() -> new UserNotFoundException("User not found by email"));
+    }
+
+    @Override
+    public Optional<User> findOptionalByEmail(String email) {
+        return userRepo.findUserByEmail(email); // Zwraca Optional, nie rzuca wyjątku
     }
 
     @Override
@@ -56,7 +62,7 @@ class UserServiceImpl implements UserService {
 
     @Override
     public User updateUser(User user) throws UserNotFoundException {
-        userRepo.findUserByEmail(user.getEmail()).orElseThrow(() -> new UserNotFoundException("User not found by email"));
+        userRepo.findUserById(user.getId()).orElseThrow(() -> new UserNotFoundException("User not found by id"));
         return userRepo.updateUser(user);
     }
 
