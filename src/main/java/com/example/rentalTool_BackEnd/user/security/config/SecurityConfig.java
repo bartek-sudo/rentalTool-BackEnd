@@ -60,6 +60,7 @@ class SecurityConfig {
                                         .requestMatchers(POST, "/api/v1/auth/login").permitAll()
                                         .requestMatchers(GET, "/api/v1/auth/me").authenticated()
                                         .requestMatchers(POST, "/api/v1/auth/change-password").authenticated()
+                                        .requestMatchers(POST, "/api/v1/auth/logout").authenticated()
 
                                         .requestMatchers(GET, "/api/v1/user/{id}").permitAll()
                                         .requestMatchers(GET, "/api/v1/user/admin").hasAuthority("ADMIN")

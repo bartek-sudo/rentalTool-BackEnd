@@ -12,6 +12,8 @@ import com.example.rentalTool_BackEnd.user.web.mapper.UserDtoMapper;
 import com.example.rentalTool_BackEnd.user.web.requests.ChangePasswordRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserLoginRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -37,18 +39,27 @@ class AuthController {
 
 
     @PostMapping("/login")
-    public ResponseEntity<HttpResponse> login(@Valid @RequestBody UserLoginRequest userLoginRequest) {
+    public ResponseEntity<HttpResponse> login(@Valid @RequestBody UserLoginRequest userLoginRequest, HttpServletResponse response) {
         try {
             final Authentication authentication = accountAuthenticationProvider.authenticate(new UsernamePasswordAuthenticationToken(userLoginRequest.email(), userLoginRequest.password()));
 
             final User user = userService.getUserByEmail(userLoginRequest.email());
+            final String token = tokenService.generateJwtToken(authentication, user);
+
+            // Ustaw JWT w cookie
+            Cookie jwtCookie = new Cookie("jwt", token);
+            jwtCookie.setHttpOnly(true);
+            jwtCookie.setPath("/");
+            jwtCookie.setMaxAge(24 * 60 * 60); // 1 dzień
+            //jwtCookie.setSecure(false); // todo: true na produkcji (HTTPS)
+            response.addCookie(jwtCookie);
 
             return ResponseEntity.status(OK).body(HttpResponse.builder()
                     .timeStamp(TimeUtil.getCurrentTimeWithFormat())
                     .statusCode(OK.value())
                     .httpStatus(OK)
                     .reason("User login request")
-                    .message(tokenService.generateJwtToken(authentication, user))
+                    .message("Login successful")
                     .data(Map.of("user", userDtoMapper.toDto(user)))
                     .build());
         }catch (AuthenticationException e){
@@ -87,10 +98,7 @@ class AuthController {
     public ResponseEntity<HttpResponse> changePassword(
             @RequestBody @Valid ChangePasswordRequest changePasswordRequest,
             Authentication authentication
-//            @RequestHeader("Authorization") String authHeader
     ) {
-//        final String token = authHeader.replace("Bearer ", "");
-//        userService.changeUserPassword(tokenService.getUserIdFromJwtToken(token), changePasswordRequest);
 
         final User user = userService.getUserByEmail(authentication.getName());
         userService.changeUserPassword(user.getId(), changePasswordRequest);
@@ -101,6 +109,23 @@ class AuthController {
                 .httpStatus(OK)
                 .reason("Password change request")
                 .message("Password changed successfully")
+                .build());
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<HttpResponse> logout(HttpServletResponse response) {
+        Cookie jwtCookie = new Cookie("jwt", null);
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge(0); // Usuwa cookie
+        //jwtCookie.setSecure(false); // true na produkcji (HTTPS)
+        response.addCookie(jwtCookie);
+        return ResponseEntity.ok(HttpResponse.builder()
+                .timeStamp(TimeUtil.getCurrentTimeWithFormat())
+                .statusCode(200)
+                .httpStatus(org.springframework.http.HttpStatus.OK)
+                .reason("Logout")
+                .message("Wylogowano pomyślnie")
                 .build());
     }
 }

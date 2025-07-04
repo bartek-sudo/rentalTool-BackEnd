@@ -36,32 +36,48 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
+        // final String authHeader = request.getHeader("Authorization");
+        // if (authHeader != null) {
+        //     if (authHeader.startsWith("Bearer ")) {
+        //         try {
+        //             final String token = authHeader.replace("Bearer ", "");
+        //             final Jwt jwt = jwtDecoder.decode(token);
+        //
+        //             // Check if token is expired
+        //             if (jwt.getExpiresAt() != null && jwt.getExpiresAt().isBefore(now())) {
+        //                 handleJwtException(response, new InvalidCredentialsException("Token expired"));
+        //                 return;
+        //             }
+        //
+        //             final Collection<GrantedAuthority> authorities = parseAuthoritiesFromToken(jwt);
+        //
+        //             final Authentication authentication = new JwtAuthenticationToken(jwt, authorities);
+        //
+        //             SecurityContextHolder.getContext().setAuthentication(authentication);
+        //         }catch (JwtException | InvalidCredentialsException e) {
+        //             handleJwtException(response, e);
+        //             return;
+        //         }
+        //     }
+        // }
 
-        if (authHeader != null) {
-            if (authHeader.startsWith("Bearer ")) {
-                try {
-                    final String token = authHeader.replace("Bearer ", "");
-                    final Jwt jwt = jwtDecoder.decode(token);
-
-                    // Check if token is expired
-                    if (jwt.getExpiresAt() != null && jwt.getExpiresAt().isBefore(now())) {
-                        handleJwtException(response, new InvalidCredentialsException("Token expired"));
-                        return;
-                    }
-
-                    final Collection<GrantedAuthority> authorities = parseAuthoritiesFromToken(jwt);
-
-                    final Authentication authentication = new JwtAuthenticationToken(jwt, authorities);
-
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }catch (JwtException | InvalidCredentialsException e) {
-                    handleJwtException(response, e);
+        // Pobierz JWT z cookie
+        String token = getJwtFromCookies(request);
+        if (token != null) {
+            try {
+                final Jwt jwt = jwtDecoder.decode(token);
+                if (jwt.getExpiresAt() != null && jwt.getExpiresAt().isBefore(now())) {
+                    handleJwtException(response, new InvalidCredentialsException("Token expired"));
                     return;
                 }
+                final Collection<GrantedAuthority> authorities = parseAuthoritiesFromToken(jwt);
+                final Authentication authentication = new JwtAuthenticationToken(jwt, authorities);
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } catch (JwtException | InvalidCredentialsException e) {
+                handleJwtException(response, e);
+                return;
             }
         }
-
         filterChain.doFilter(request, response);
     }
 
@@ -69,6 +85,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return jwt.getClaimAsStringList("authorities").stream()
                 .map(SimpleGrantedAuthority::new)
                 .collect(Collectors.toList());
+    }
+
+    private String getJwtFromCookies(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("jwt".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        return null;
     }
 
     private void handleJwtException(HttpServletResponse response, Exception e) throws IOException {
