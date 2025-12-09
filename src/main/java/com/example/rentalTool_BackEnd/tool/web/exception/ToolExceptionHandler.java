@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @ControllerAdvice
@@ -37,12 +39,12 @@ class ToolExceptionHandler {
 
     @ExceptionHandler(UnauthorizedToolAccessException.class)
     public ResponseEntity<HttpResponse> handleUnauthorizedToolAccessException(UnauthorizedToolAccessException e) {
-        return ResponseEntity.status(NOT_FOUND).body(HttpResponse
+        return ResponseEntity.status(FORBIDDEN).body(HttpResponse
                 .builder()
                 .message(e.getMessage())
                 .reason("Unauthorized access to tool")
-                .statusCode(NOT_FOUND.value())
-                .httpStatus(NOT_FOUND)
+                .statusCode(FORBIDDEN.value())
+                .httpStatus(FORBIDDEN)
                 .build());
     }
 

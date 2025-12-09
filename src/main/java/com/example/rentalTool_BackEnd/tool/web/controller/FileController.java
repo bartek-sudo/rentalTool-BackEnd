@@ -1,6 +1,11 @@
 package com.example.rentalTool_BackEnd.tool.web.controller;
 
 import com.example.rentalTool_BackEnd.tool.service.FileStorageService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -21,29 +26,40 @@ public class FileController {
 
     private final FileStorageService fileStorageService;
 
+    @Operation(summary = "Pobierz plik", description = "Zwraca plik graficzny (zdjęcie narzędzia)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Plik zwrócony pomyślnie",
+                    content = @Content(mediaType = "image/*",
+                            schema = @Schema(type = "string", format = "binary"))),
+            @ApiResponse(responseCode = "404", description = "Plik nie znaleziony")
+    })
     @GetMapping("/{fileName:.+}")
     public ResponseEntity<Resource> getFile(
             @PathVariable String fileName,
             HttpServletRequest request) {
 
-        Resource resource = fileStorageService.loadFileAsResource(fileName);
-
-        // Określenie typu zawartości
-        String contentType = null;
         try {
-            contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
-        } catch (IOException ex) {
-            // logger.info("Could not determine file type.");
-        }
+            Resource resource = fileStorageService.loadFileAsResource(fileName);
 
-        // Fallback do domyślnego typu
-        if (contentType == null) {
-            contentType = "application/octet-stream";
-        }
+            // Określenie typu zawartości
+            String contentType = null;
+            try {
+                contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+            } catch (IOException ex) {
+                // logger.info("Could not determine file type.");
+            }
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
-                .body(resource);
+            // Fallback do domyślnego typu
+            if (contentType == null) {
+                contentType = "application/octet-stream";
+            }
+
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                    .body(resource);
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

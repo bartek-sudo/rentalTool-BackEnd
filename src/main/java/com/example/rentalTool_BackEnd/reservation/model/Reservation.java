@@ -33,6 +33,11 @@ public class Reservation {
     @Enumerated(EnumType.STRING)
     private ReservationStatus status;
 
+    @Column(nullable = true)
+    private Long termsId; // ID wybranego regulaminu
+
+    private Instant termsAcceptedAt;
+
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -51,13 +56,10 @@ public class Reservation {
         this.updatedAt = Instant.now();
     }
 
-    public void pay() {
-        this.status = ReservationStatus.PAID;
-        this.updatedAt = Instant.now();
-    }
-
-    public void finish() {
-        this.status = ReservationStatus.FINISHED;
+    public void acceptRegulations(Long termsId) {
+        this.status = ReservationStatus.REGULATIONS_ACCEPTED;
+        this.termsId = termsId;
+        this.termsAcceptedAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 

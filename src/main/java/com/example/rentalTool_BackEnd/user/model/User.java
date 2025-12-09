@@ -28,6 +28,9 @@ public class User {
     private String password;
 
     @Column(nullable = false)
+    private String phoneNumber;
+
+    @Column(nullable = false)
     private boolean blocked;
 
     private boolean verified;
@@ -45,15 +48,15 @@ public class User {
     @Enumerated(EnumType.STRING)
     private UserType userType;
 
-    public User(String password, String email, String lastName, String firstName, UserType userType) {
+    public User(String password, String email, String lastName, String firstName, String phoneNumber, UserType userType) {
         this.password = password;
         this.email = email;
         this.lastName = lastName;
         this.firstName = firstName;
+        this.phoneNumber = phoneNumber;
         this.userType = userType;
 
-        // TODO add verification system
-        this.verified = true;
+        this.verified = false;
         this.blocked = false;
 
         this.createdAt = Instant.now();

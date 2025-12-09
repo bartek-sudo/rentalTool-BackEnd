@@ -12,7 +12,9 @@ public record ToolCreateRequest(
         @NotNull
         Double latitude,
         @NotNull
-        Double longitude
+        Double longitude,
+        @NotNull
+        Long termsId
 
 ) {
 }

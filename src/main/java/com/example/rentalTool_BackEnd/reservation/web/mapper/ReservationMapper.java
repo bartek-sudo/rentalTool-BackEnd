@@ -14,7 +14,8 @@ public class ReservationMapper {
                 reservation.getStartDate().toString(),
                 reservation.getEndDate().toString(),
                 reservation.getTotalPrice(),
-                reservation.getStatus().name()
+                reservation.getStatus().name(),
+                reservation.getTermsId()
         );
     }
 }

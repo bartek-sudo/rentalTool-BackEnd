@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.user.security.jwt.filter;
 
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
+import com.example.rentalTool_BackEnd.shared.util.TimeUtil;
 import com.example.rentalTool_BackEnd.user.security.exception.InvalidCredentialsException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 
 import static java.time.Instant.now;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @Component
 @RequiredArgsConstructor
@@ -39,37 +41,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
 
-        // final String authHeader = request.getHeader("Authorization");
-        // if (authHeader != null) {
-        //     if (authHeader.startsWith("Bearer ")) {
-        //         try {
-        //             final String token = authHeader.replace("Bearer ", "");
-        //             final Jwt jwt = jwtDecoder.decode(token);
-        //
-        //             // Check if token is expired
-        //             if (jwt.getExpiresAt() != null && jwt.getExpiresAt().isBefore(now())) {
-        //                 handleJwtException(response, new InvalidCredentialsException("Token expired"));
-        //                 return;
-        //             }
-        //
-        //             final Collection<GrantedAuthority> authorities = parseAuthoritiesFromToken(jwt);
-        //
-        //             final Authentication authentication = new JwtAuthenticationToken(jwt, authorities);
-        //
-        //             SecurityContextHolder.getContext().setAuthentication(authentication);
-        //         }catch (JwtException | InvalidCredentialsException e) {
-        //             handleJwtException(response, e);
-        //             return;
-        //         }
-        //     }
-        // }
-
         // Pobierz JWT z cookie
         String token = getJwtFromCookies(request);
         if (token != null) {
             try {
                 final Jwt jwt = jwtDecoder.decode(token);
                 if (jwt.getExpiresAt() != null && jwt.getExpiresAt().isBefore(now())) {
+                    // Dla publicznych endpointów: ignoruj błąd, kontynuuj bez uwierzytelnienia
+                    if (isPublicEndpoint(request)) {
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
                     handleJwtException(response, new InvalidCredentialsException("Token expired"));
                     return;
                 }
@@ -77,11 +59,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 final Authentication authentication = new JwtAuthenticationToken(jwt, authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (JwtException | InvalidCredentialsException e) {
+                // Dla publicznych endpointów: ignoruj błąd, kontynuuj bez uwierzytelnienia
+                if (isPublicEndpoint(request)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 handleJwtException(response, e);
                 return;
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Sprawdza czy endpoint jest publiczny (nie wymaga uwierzytelnienia)
+     */
+    private boolean isPublicEndpoint(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        String method = request.getMethod();
+
+        // Publiczne endpointy
+        return (path.startsWith("/api/v1/auth/register") && method.equals("POST")) ||
+               (path.startsWith("/api/v1/auth/login") && method.equals("POST")) ||
+               (path.startsWith("/api/v1/auth/verify-email") && method.equals("GET")) ||
+               (path.startsWith("/api/v1/auth/resend-verification") && method.equals("POST")) ||
+               (path.matches("/api/v1/user/\\d+") && method.equals("GET")) ||
+               (path.matches("/api/v1/tools/\\d+") && method.equals("GET")) ||
+               (path.startsWith("/api/v1/tools/search") && method.equals("GET")) ||
+               (path.matches("/api/v1/tools/\\d+/availability") && method.equals("GET")) ||
+               (path.matches("/api/v1/tools/\\d+/images") && method.equals("GET")) ||
+               (path.startsWith("/api/v1/files/") && method.equals("GET")) ||
+               (path.startsWith("/api/v1/terms/") && method.equals("GET")) ||
+               (path.startsWith("/v3/api-docs/")) ||
+               (path.startsWith("/swagger-ui/")) ||
+               (path.equals("/swagger-ui.html"));
     }
 
     private Collection<GrantedAuthority> parseAuthoritiesFromToken(Jwt jwt) {
@@ -103,13 +114,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private void handleJwtException(HttpServletResponse response, Exception e) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
+        response.setContentType(APPLICATION_JSON_VALUE);
         final ObjectMapper mapper = new ObjectMapper();
         mapper.writeValue(response.getWriter(), HttpResponse.builder()
+                .timeStamp(TimeUtil.getCurrentTimeWithFormat())
                 .httpStatus(UNAUTHORIZED)
                 .statusCode(UNAUTHORIZED.value())
-                .reason(UNAUTHORIZED.getReasonPhrase())
-                .message(e.getMessage())
+                .reason("Authorization failed")
+                .message(e.getMessage() != null ? e.getMessage() : "Invalid or expired token")
                 .build());
     }
 }

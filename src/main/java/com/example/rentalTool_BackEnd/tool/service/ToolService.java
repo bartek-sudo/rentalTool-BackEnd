@@ -20,15 +20,21 @@ public interface ToolService {
 
     Tool updateTool(long toolId, ToolUpdateRequest toolUpdateRequest, long ownerId);
 
-    Tool deactivateTool(long toolId, long ownerId);
-
-    Tool activateTool(long toolId, long ownerId);
+    Tool setToolStatus(long toolId, long ownerId, boolean active);
 
     Page<Tool> getActiveTools(Pageable pageable);
 
+    Page<Tool> getActiveToolsByCategory(String category, Pageable pageable);
+
     Page<Tool> searchActiveTools(String searchTerm, Pageable pageable);
 
+    Page<Tool> searchActiveTools(String searchTerm, String category, Pageable pageable);
+
     Page<Tool> getToolsByOwnerId(long ownerId, Pageable pageable);
+
+    // Geolocation search
+    Page<Tool> findNearbyTools(Double userLatitude, Double userLongitude, Double radiusKm,
+                               String searchTerm, String category, Pageable pageable);
 
     // Metody do obsługi zdjęć
     ToolImage addImageToTool(long toolId, MultipartFile file, boolean isMain);
@@ -40,6 +46,8 @@ public interface ToolService {
     List<ToolImage> getToolImages(long toolId);
 
     ToolImage getImageById(long imageId);
+
+    Tool updateToolTerms(long toolId, long ownerId, Long termsId);
 
     Page<Tool> getToolsPendingModeration(Pageable pageable);
 

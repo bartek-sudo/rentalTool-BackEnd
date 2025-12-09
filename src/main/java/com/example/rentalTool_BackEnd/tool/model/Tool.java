@@ -35,6 +35,9 @@ public class Tool {
     private Double latitude; // szerokość geograficzna
     private Double longitude; // długość geograficzna
 
+    @Column(nullable = false)
+    private Long termsId; // Wybrany regulamin przez właściciela narzędzia
+
     // Główne zdjęcie dla szybkiego dostępu
     private String mainImageUrl;
 
@@ -55,7 +58,7 @@ public class Tool {
     private Instant moderatedAt; // kiedy zostało zmoderowane
     private String moderationComment; // komentarz moderatora (opcjonalny)
 
-    public Tool(String name, String description, double pricePerDay, Category category, long owner, String address, Double latitude, Double longitude) {
+    public Tool(String name, String description, double pricePerDay, Category category, long owner, String address, Double latitude, Double longitude, Long termsId) {
         this.name = name;
         this.description = description;
         this.pricePerDay = pricePerDay;
@@ -64,6 +67,7 @@ public class Tool {
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;
+        this.termsId = termsId;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
         this.isActive = true;
@@ -175,6 +179,13 @@ public class Tool {
      */
     public boolean isRejected() {
         return moderationStatus == ModerationStatus.REJECTED;
+    }
+
+    /**
+     * Sprawdza czy narzędzie ma przynajmniej jedno zdjęcie
+     */
+    public boolean hasImages() {
+        return images != null && !images.isEmpty();
     }
 
 }

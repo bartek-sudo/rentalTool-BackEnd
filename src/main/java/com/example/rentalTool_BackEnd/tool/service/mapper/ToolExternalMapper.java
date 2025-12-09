@@ -12,7 +12,8 @@ public class ToolExternalMapper {
                 tool.getOwnerId(),
                 tool.getPricePerDay(),
                 tool.getCategory(),
-                tool.isActive()
+                tool.isActive(),
+                tool.getTermsId()
         );
     }
 }

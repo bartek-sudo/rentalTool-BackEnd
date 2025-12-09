@@ -24,7 +24,7 @@ class ToolAvailabilityServiceImpl implements ToolAvailabilityService {
                 toolId,
                 startDate,
                 endDate,
-                List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.PAID)
+                List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.REGULATIONS_ACCEPTED)
         );
 
         List<LocalDate> allDaysInRange = startDate.datesUntil(endDate.plusDays(1)).toList();

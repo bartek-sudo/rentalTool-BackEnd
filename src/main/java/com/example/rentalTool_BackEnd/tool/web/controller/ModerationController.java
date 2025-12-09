@@ -7,6 +7,12 @@ import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.web.mapper.ToolDtoMapper;
 import com.example.rentalTool_BackEnd.tool.web.requests.ModerationRequest;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -30,9 +36,55 @@ public class ModerationController {
     private final ToolService toolService;
     private final ToolDtoMapper toolDtoMapper;
 
-    /**
-     * Pobiera narzędzia oczekujące na moderację
-     */
+    @Operation(summary = "Pobierz narzędzia oczekujące na moderację", description = "Zwraca stronicowaną listę narzędzi oczekujących na moderację (tylko moderator)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista narzędzi oczekujących na moderację",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "OK",
+                                      "statusCode": 200,
+                                      "reason": "Pending tools request",
+                                      "message": "Tools awaiting moderation",
+                                      "data": {
+                                        "tools": [
+                                          {
+                                            "id": 1,
+                                            "name": "Wiertarka",
+                                            "moderationStatus": "PENDING"
+                                          }
+                                        ],
+                                        "currentPage": 0,
+                                        "totalPages": 1,
+                                        "totalItems": 5,
+                                        "pageSize": 10
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "401", description = "Nieautoryzowany dostęp - wymagane zalogowanie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "UNAUTHORIZED",
+                                      "statusCode": 401,
+                                      "reason": "Authorization failed",
+                                      "message": "Unauthorized access - authentication required"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień - wymagana rola MODERATOR lub ADMIN",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "FORBIDDEN",
+                                      "statusCode": 403,
+                                      "reason": "Access denied",
+                                      "message": "Access denied - insufficient permissions"
+                                    }
+                                    """)))
+    })
     @GetMapping("/pending")
     public ResponseEntity<HttpResponse> getPendingTools(
             @RequestParam(value = "page", defaultValue = "0") int page,
@@ -65,9 +117,50 @@ public class ModerationController {
                         .build());
     }
 
-    /**
-     * Pobiera narzędzia według statusu moderacji
-     */
+    @Operation(summary = "Pobierz narzędzia według statusu moderacji", description = "Zwraca narzędzia o określonym statusie moderacji (tylko moderator)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Narzędzia pobrane pomyślnie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "OK",
+                                      "statusCode": 200,
+                                      "reason": "Tools by status request",
+                                      "message": "Tools with status: APPROVED",
+                                      "data": {
+                                        "tools": [],
+                                        "currentPage": 0,
+                                        "totalPages": 0,
+                                        "totalItems": 0,
+                                        "pageSize": 10,
+                                        "status": "APPROVED"
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "400", description = "Nieprawidłowy status moderacji",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "BAD_REQUEST",
+                                      "statusCode": 400,
+                                      "reason": "Invalid moderation status",
+                                      "message": "Valid statuses: PENDING, APPROVED, REJECTED"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "401", description = "Nieautoryzowany dostęp - wymagane zalogowanie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "UNAUTHORIZED",
+                                      "statusCode": 401,
+                                      "reason": "Authorization failed",
+                                      "message": "Unauthorized access - authentication required"
+                                    }
+                                    """)))
+    })
     @GetMapping("/status/{status}")
     public ResponseEntity<HttpResponse> getToolsByStatus(
             @PathVariable("status") String status,
@@ -115,9 +208,65 @@ public class ModerationController {
         }
     }
 
-    /**
-     * Zatwierdza narzędzie
-     */
+    @Operation(summary = "Zatwierdź narzędzie", description = "Zatwierdza narzędzie do publikacji (tylko moderator)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Narzędzie zatwierdzone pomyślnie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "OK",
+                                      "statusCode": 200,
+                                      "reason": "Tool approval request",
+                                      "message": "Tool approved successfully",
+                                      "data": {
+                                        "Tool": {
+                                          "id": 1,
+                                          "name": "Wiertarka",
+                                          "moderationStatus": "APPROVED"
+                                        }
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "400", description = "Błąd walidacji danych",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "BAD_REQUEST",
+                                      "statusCode": 400,
+                                      "reason": "Validation failed",
+                                      "message": "Validation failed",
+                                      "data": {
+                                        "validationErrors": {
+                                          "comment": "Comment cannot be blank"
+                                        }
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "401", description = "Nieautoryzowany dostęp - wymagane zalogowanie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "UNAUTHORIZED",
+                                      "statusCode": 401,
+                                      "reason": "Authorization failed",
+                                      "message": "Unauthorized access - authentication required"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "404", description = "Narzędzie nie znalezione",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "NOT_FOUND",
+                                      "statusCode": 404,
+                                      "reason": "Tool has not been found",
+                                      "message": "Tool not found"
+                                    }
+                                    """)))
+    })
     @PostMapping("/{toolId}/approve")
     public ResponseEntity<HttpResponse> approveTool(
             @PathVariable("toolId") long toolId,
@@ -140,9 +289,60 @@ public class ModerationController {
                         .build());
     }
 
-    /**
-     * Odrzuca narzędzie
-     */
+    @Operation(summary = "Odrzuć narzędzie", description = "Odrzuca narzędzie (tylko moderator, wymagany komentarz)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Narzędzie odrzucone pomyślnie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "OK",
+                                      "statusCode": 200,
+                                      "reason": "Tool rejection request",
+                                      "message": "Tool rejected successfully",
+                                      "data": {
+                                        "Tool": {
+                                          "id": 1,
+                                          "name": "Wiertarka",
+                                          "moderationStatus": "REJECTED"
+                                        }
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "400", description = "Błąd walidacji - brak komentarza odrzucenia",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "BAD_REQUEST",
+                                      "statusCode": 400,
+                                      "reason": "Invalid argument",
+                                      "message": "Rejection comment is required"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "401", description = "Nieautoryzowany dostęp - wymagane zalogowanie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "UNAUTHORIZED",
+                                      "statusCode": 401,
+                                      "reason": "Authorization failed",
+                                      "message": "Unauthorized access - authentication required"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "404", description = "Narzędzie nie znalezione",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "NOT_FOUND",
+                                      "statusCode": 404,
+                                      "reason": "Tool has not been found",
+                                      "message": "Tool not found"
+                                    }
+                                    """)))
+    })
     @PostMapping("/{toolId}/reject")
     public ResponseEntity<HttpResponse> rejectTool(
             @PathVariable("toolId") long toolId,
@@ -165,9 +365,65 @@ public class ModerationController {
                         .build());
     }
 
-    /**
-     * Oznacza narzędzie jako wymagające ponownej moderacji
-     */
+    @Operation(summary = "Wymagaj ponownej moderacji", description = "Oznacza narzędzie jako wymagające ponownej moderacji (tylko moderator, wymagany powód)")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Narzędzie oznaczone do ponownej moderacji",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "OK",
+                                      "statusCode": 200,
+                                      "reason": "Remoderation requirement request",
+                                      "message": "Tool marked for remoderation",
+                                      "data": {
+                                        "Tool": {
+                                          "id": 1,
+                                          "name": "Wiertarka",
+                                          "moderationStatus": "PENDING"
+                                        }
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "400", description = "Błąd walidacji - brak powodu remoderacji",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "BAD_REQUEST",
+                                      "statusCode": 400,
+                                      "reason": "Validation failed",
+                                      "message": "Validation failed",
+                                      "data": {
+                                        "validationErrors": {
+                                          "comment": "Comment is required for remoderation"
+                                        }
+                                      }
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "401", description = "Nieautoryzowany dostęp - wymagane zalogowanie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "UNAUTHORIZED",
+                                      "statusCode": 401,
+                                      "reason": "Authorization failed",
+                                      "message": "Unauthorized access - authentication required"
+                                    }
+                                    """))),
+            @ApiResponse(responseCode = "404", description = "Narzędzie nie znalezione",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "NOT_FOUND",
+                                      "statusCode": 404,
+                                      "reason": "Tool has not been found",
+                                      "message": "Tool not found"
+                                    }
+                                    """)))
+    })
     @PostMapping("/{toolId}/require-remoderation")
     public ResponseEntity<HttpResponse> requireRemoderation(
             @PathVariable("toolId") long toolId,

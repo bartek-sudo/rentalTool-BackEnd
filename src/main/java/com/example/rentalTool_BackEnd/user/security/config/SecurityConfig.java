@@ -36,6 +36,7 @@ class SecurityConfig {
     private final CustomUserDetailsService detailsService;
     private final JwtDecoder jwtDecoder;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CustomAuthenticationEntryPoint authenticationEntryPoint;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity security) throws Exception {
@@ -45,11 +46,12 @@ class SecurityConfig {
 
         security.csrf(AbstractHttpConfigurer::disable);
 
-        security.oauth2ResourceServer(Customizer.withDefaults());
-        security.oauth2ResourceServer(o2auth -> o2auth.jwt(jwtConfigurer -> {
-            jwtConfigurer.decoder(jwtDecoder);
-            jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter());
-        }));
+        security.oauth2ResourceServer(o2auth -> o2auth
+                .jwt(jwtConfigurer -> {
+                    jwtConfigurer.decoder(jwtDecoder);
+                    jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter());
+                })
+                .authenticationEntryPoint(authenticationEntryPoint));
 
         security.cors(httpSecurityCorsConfigurer -> httpSecurityCorsConfigurer.configurationSource(corsConfigurationSource()));
 
@@ -58,6 +60,8 @@ class SecurityConfig {
                                 auth
                                         .requestMatchers(POST, "/api/v1/auth/register").permitAll()
                                         .requestMatchers(POST, "/api/v1/auth/login").permitAll()
+                                        .requestMatchers(GET, "/api/v1/auth/verify-email").permitAll()
+                                        .requestMatchers(POST, "/api/v1/auth/resend-verification").permitAll()
                                         .requestMatchers(GET, "/api/v1/auth/me").authenticated()
                                         .requestMatchers(POST, "/api/v1/auth/change-password").authenticated()
                                         .requestMatchers(POST, "/api/v1/auth/logout").authenticated()
@@ -70,10 +74,9 @@ class SecurityConfig {
                                         .requestMatchers(PATCH, "/api/v1/user/admin/{id}/role").hasAuthority("ADMIN")
 
                                         // Tools endpoints
-                                        .requestMatchers(POST, "/api/v1/tools/create").authenticated()
+                                        .requestMatchers(POST, "/api/v1/tools").authenticated()
                                         .requestMatchers(PUT, "/api/v1/tools/{id}").authenticated()
-                                        .requestMatchers(PATCH, "/api/v1/tools/{id}/activate").authenticated()
-                                        .requestMatchers(PATCH, "/api/v1/tools/{id}/deactivate").authenticated()
+                                        .requestMatchers(PATCH, "/api/v1/tools/{id}/status").authenticated()
                                         .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
 //                                        .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
                                         .requestMatchers(GET, "/api/v1/tools/search").permitAll()
@@ -87,15 +90,17 @@ class SecurityConfig {
                                         .requestMatchers(GET, "/api/v1/files/{fileName:.+}").permitAll()
 
                                         // Reservation endpoints
-                                        .requestMatchers(POST, "/api/v1/reservations/create").authenticated()
+                                        .requestMatchers(POST, "/api/v1/reservations").authenticated()
                                         .requestMatchers(GET, "/api/v1/reservations/my-rentals").authenticated()
                                         .requestMatchers(GET, "/api/v1/reservations/my-tools-reservations").authenticated()
                                         .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/confirm").authenticated()
-                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/pay").authenticated()
-                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/finish").authenticated()
+                                        .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/accept-regulations").authenticated()
                                         .requestMatchers(PUT, "/api/v1/reservations/{reservationId}/cancel").authenticated()
                                         .requestMatchers(GET, "/api/v1/reservations/{reservationId}").authenticated()
                                         .requestMatchers(GET, "/api/v1/reservations/all").hasAuthority("MODERATOR")
+                                        
+                                        // Terms endpoints
+                                        .requestMatchers(GET, "/api/v1/terms/**").permitAll()
 
                                         // Endpoints dla moderatora
                                         .requestMatchers(GET, "/api/v1/moderation/pending").hasAnyAuthority("MODERATOR")

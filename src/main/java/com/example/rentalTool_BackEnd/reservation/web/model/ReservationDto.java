@@ -7,6 +7,7 @@ public record ReservationDto(
         String startDate,
         String endDate,
         double totalPrice,
-        String status
+        String status,
+        Long termsId
 ) {
 }

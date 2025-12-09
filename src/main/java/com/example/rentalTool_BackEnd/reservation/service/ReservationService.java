@@ -21,9 +21,7 @@ public interface ReservationService {
 
     Reservation confirmReservation(long reservationId);
 
-    Reservation payReservation(long reservationId);
-
-    Reservation finishReservation(long reservationId);
+    Reservation acceptRegulationsReservation(long reservationId, Long termsId);
 
     Reservation cancelReservation(long reservationId);
 

@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.reservation.web.exception;
 
 import com.example.rentalTool_BackEnd.reservation.exception.ReservationNotFoundException;
+import com.example.rentalTool_BackEnd.reservation.exception.TermsNotFoundException;
 import com.example.rentalTool_BackEnd.reservation.exception.ToolNotAvailableException;
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,17 @@ class ReservationExceptionHandler {
                 .reason("Tool is not available for the requested period")
                 .statusCode(BAD_REQUEST.value())
                 .httpStatus(BAD_REQUEST)
+                .build());
+    }
+
+    @ExceptionHandler(TermsNotFoundException.class)
+    public ResponseEntity<HttpResponse> handleTermsNotFoundException(TermsNotFoundException e) {
+        return ResponseEntity.status(NOT_FOUND).body(HttpResponse
+                .builder()
+                .message(e.getMessage())
+                .reason("Terms has not been found")
+                .statusCode(NOT_FOUND.value())
+                .httpStatus(NOT_FOUND)
                 .build());
     }
 

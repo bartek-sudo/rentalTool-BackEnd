@@ -14,7 +14,9 @@ public record ToolUpdateRequest(
         @NotNull
         Double latitude,
         @NotNull
-        Double longitude
+        Double longitude,
+        @NotNull
+        Long termsId
 
 ) {
 }

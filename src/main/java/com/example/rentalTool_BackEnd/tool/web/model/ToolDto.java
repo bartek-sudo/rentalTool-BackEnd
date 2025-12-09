@@ -11,9 +11,11 @@ public record ToolDto(
         double latitude,
         double longitude,
         String mainImageUrl,
+        Long termsId,
         boolean isActive,
         String moderationStatus,
         String createdAt,
-        String moderationComment
+        String moderationComment,
+        Double distance // Odległość od użytkownika w km (null jeśli nie wyszukiwano po lokalizacji)
 ) {
 }

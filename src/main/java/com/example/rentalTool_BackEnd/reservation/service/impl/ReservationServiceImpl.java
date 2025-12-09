@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +33,7 @@ class ReservationServiceImpl implements ReservationService {
                 toolId,
                 startDate,
                 endDate,
-                List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.PAID)
+                List.of(ReservationStatus.PENDING, ReservationStatus.CONFIRMED, ReservationStatus.REGULATIONS_ACCEPTED)
         );
         return overlappingReservations.isEmpty();
     }
@@ -82,7 +84,10 @@ class ReservationServiceImpl implements ReservationService {
             allReservations.addAll(toolReservations);
         }
 
-        return allReservations;
+        // Krok 3: Sortuj od najnowszych (po createdAt DESC)
+        return allReservations.stream()
+                .sorted(Comparator.comparing(Reservation::getCreatedAt).reversed())
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -93,16 +98,9 @@ class ReservationServiceImpl implements ReservationService {
     }
 
     @Override
-    public Reservation payReservation(long reservationId) {
+    public Reservation acceptRegulationsReservation(long reservationId, Long termsId) {
         Reservation reservation = getReservationById(reservationId);
-        reservation.pay();
-        return reservationRepo.saveReservation(reservation);
-    }
-
-    @Override
-    public Reservation finishReservation(long reservationId) {
-        Reservation reservation = getReservationById(reservationId);
-        reservation.finish();
+        reservation.acceptRegulations(termsId);
         return reservationRepo.saveReservation(reservation);
     }
 

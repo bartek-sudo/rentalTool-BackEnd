@@ -1,5 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.service.impl;
 
+import com.example.rentalTool_BackEnd.shared.util.GeoLocationUtil;
 import com.example.rentalTool_BackEnd.tool.exception.ImageNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.ToolNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.UnauthorizedToolAccessException;
@@ -17,13 +18,16 @@ import com.example.rentalTool_BackEnd.tool.web.requests.ToolCreateRequest;
 import com.example.rentalTool_BackEnd.tool.web.requests.ToolUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,12 +55,23 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         // Zwraca tylko zatwierdzone i aktywne narzędzia
         return toolRepo.findAllApprovedAndActiveTools(pageable);
     }
+
+    @Override
+    public Page<Tool> getActiveToolsByCategory(String category, Pageable pageable) {
+        try {
+            Category categoryEnum = Category.valueOf(category.toUpperCase());
+            return toolRepo.findAllApprovedAndActiveToolsByCategory(categoryEnum, pageable);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid category: " + category + ". Valid categories are: GARDENING, CONSTRUCTION, ELECTRIC, PLUMBING, OTHER");
+        }
+    }
     @Override
     public Tool createTool(ToolCreateRequest toolCreateRequest, long ownerId) {
         Category category = Category.valueOf(toolCreateRequest.category());
-        return toolRepo.saveTool(new Tool(toolCreateRequest.name(), toolCreateRequest.description(),
+        Tool tool = new Tool(toolCreateRequest.name(), toolCreateRequest.description(),
                 toolCreateRequest.pricePerDay(), category, ownerId, toolCreateRequest.address(),
-                toolCreateRequest.latitude(), toolCreateRequest.longitude()));
+                toolCreateRequest.latitude(), toolCreateRequest.longitude(), toolCreateRequest.termsId());
+        return toolRepo.saveTool(tool);
     }
 
     @Override
@@ -74,6 +89,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         tool.setAddress(toolUpdateRequest.address());
         tool.setLatitude(toolUpdateRequest.latitude());
         tool.setLongitude(toolUpdateRequest.longitude());
+        tool.setTermsId(toolUpdateRequest.termsId());
 
         tool.requiresRemoderation("Tool updated by owner");
 
@@ -81,23 +97,12 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     }
 
     @Override
-    public Tool deactivateTool(long toolId, long ownerId) {
+    public Tool setToolStatus(long toolId, long ownerId, boolean active) {
         Tool tool = getToolById(toolId);
         if (tool.getOwnerId() != ownerId) {
-            throw new UnauthorizedToolAccessException("You can only deactivate your own tools");
+            throw new UnauthorizedToolAccessException("You can only change status of your own tools");
         }
-        tool.setActive(false);
-        return toolRepo.saveTool(tool);
-    }
-
-    @Override
-    public Tool activateTool(long toolId, long ownerId) {
-        Tool tool = getToolById(toolId);
-        if (tool.getOwnerId() != ownerId) {
-            throw new UnauthorizedToolAccessException("You can only activate your own tools");
-        }
-
-        tool.setActive(true);
+        tool.setActive(active);
         return toolRepo.saveTool(tool);
     }
 
@@ -116,8 +121,82 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     }
 
     @Override
+    public Page<Tool> searchActiveTools(String searchTerm, String category, Pageable pageable) {
+        try {
+            Category categoryEnum = Category.valueOf(category.toUpperCase());
+            return toolRepo.findApprovedToolsByNameOrDescriptionAndCategory(searchTerm, searchTerm, categoryEnum, pageable);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid category: " + category + ". Valid categories are: GARDENING, CONSTRUCTION, ELECTRIC, PLUMBING, OTHER");
+        }
+    }
+
+    @Override
     public Page<Tool> getToolsByOwnerId(long ownerId, Pageable pageable) {
         return toolRepo.findByOwnerId(ownerId, pageable);
+    }
+
+    @Override
+    public Page<Tool> findNearbyTools(Double userLatitude, Double userLongitude, Double radiusKm,
+                                      String searchTerm, String category, Pageable pageable) {
+        // Pobierz wszystkie aktywne narzędzia
+        Page<Tool> allToolsPage;
+
+        boolean hasSearchTerm = searchTerm != null && !searchTerm.trim().isEmpty();
+        boolean hasCategory = category != null && !category.trim().isEmpty();
+
+        if (hasSearchTerm && hasCategory) {
+            allToolsPage = toolRepo.findApprovedToolsByNameOrDescriptionAndCategory(searchTerm, searchTerm,
+                    Category.valueOf(category.toUpperCase()), Pageable.unpaged());
+        } else if (hasSearchTerm) {
+            allToolsPage = toolRepo.findApprovedToolsByNameOrDescription(searchTerm, searchTerm, Pageable.unpaged());
+        } else if (hasCategory) {
+            allToolsPage = toolRepo.findAllApprovedAndActiveToolsByCategory(Category.valueOf(category.toUpperCase()), Pageable.unpaged());
+        } else {
+            allToolsPage = toolRepo.findAllApprovedAndActiveTools(Pageable.unpaged());
+        }
+
+        List<Tool> allTools = allToolsPage.getContent();
+
+        // Filtruj narzędzia według odległości jeśli podano promień
+        List<Tool> filteredTools;
+        if (radiusKm != null && userLatitude != null && userLongitude != null) {
+            filteredTools = allTools.stream()
+                    .filter(tool -> {
+                        if (tool.getLatitude() == null || tool.getLongitude() == null) {
+                            return false; // Pomiń narzędzia bez lokalizacji
+                        }
+                        double distance = GeoLocationUtil.calculateDistance(
+                                userLatitude, userLongitude,
+                                tool.getLatitude(), tool.getLongitude()
+                        );
+                        return distance <= radiusKm;
+                    })
+                    .collect(Collectors.toList());
+        } else {
+            // Jeśli radius = null (nieskończoność), zwróć wszystkie - tworzymy mutablecopy dla sortowania
+            filteredTools = allTools.stream().collect(Collectors.toList());
+        }
+
+        // Sortuj według odległości jeśli podano lokalizację użytkownika
+        if (userLatitude != null && userLongitude != null) {
+            filteredTools.sort(Comparator.comparingDouble(tool -> {
+                if (tool.getLatitude() == null || tool.getLongitude() == null) {
+                    return Double.MAX_VALUE; // Narzędzia bez lokalizacji na końcu
+                }
+                return GeoLocationUtil.calculateDistance(
+                        userLatitude, userLongitude,
+                        tool.getLatitude(), tool.getLongitude()
+                );
+            }));
+        }
+
+        // Implementacja manualnej paginacji
+        int start = (int) pageable.getOffset();
+        int end = Math.min((start + pageable.getPageSize()), filteredTools.size());
+
+        List<Tool> pageContent = filteredTools.subList(start, end);
+
+        return new PageImpl<>(pageContent, pageable, filteredTools.size());
     }
 
     // Metody do obsługi zdjęć
@@ -221,6 +300,17 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     public ToolImage getImageById(long imageId) {
         return toolImageRepo.findById(imageId)
                 .orElseThrow(() -> new ImageNotFoundException("Image not found with id: " + imageId));
+    }
+
+    @Override
+    public Tool updateToolTerms(long toolId, long ownerId, Long termsId) {
+        Tool tool = getToolById(toolId);
+        if (tool.getOwnerId() != ownerId) {
+            throw new UnauthorizedToolAccessException("You are not authorized to update this tool");
+        }
+        tool.setTermsId(termsId);
+        tool.setUpdatedAt(java.time.Instant.now());
+        return toolRepo.saveTool(tool);
     }
 
     // ===== IMPLEMENTACJA METOD MODERACJI =====

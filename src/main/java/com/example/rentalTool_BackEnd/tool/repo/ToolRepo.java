@@ -1,6 +1,7 @@
 package com.example.rentalTool_BackEnd.tool.repo;
 
 import com.example.rentalTool_BackEnd.tool.model.Tool;
+import com.example.rentalTool_BackEnd.tool.model.enums.Category;
 import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -52,5 +53,12 @@ public class ToolRepo {
         return toolJpaRepo.findApprovedToolsByNameOrDescription(name, description, pageable);
     }
 
+    public Page<Tool> findApprovedToolsByNameOrDescriptionAndCategory(String name, String description, Category category, Pageable pageable) {
+        return toolJpaRepo.findApprovedToolsByNameOrDescriptionAndCategory(name, description, category, pageable);
+    }
+
+    public Page<Tool> findAllApprovedAndActiveToolsByCategory(Category category, Pageable pageable) {
+        return toolJpaRepo.findAllApprovedAndActiveToolsByCategory(category, pageable);
+    }
 
 }

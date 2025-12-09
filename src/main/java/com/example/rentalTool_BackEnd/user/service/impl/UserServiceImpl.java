@@ -6,6 +6,7 @@ import com.example.rentalTool_BackEnd.user.exception.UserNotFoundException;
 import com.example.rentalTool_BackEnd.user.model.User;
 import com.example.rentalTool_BackEnd.user.model.enums.UserType;
 import com.example.rentalTool_BackEnd.user.repo.UserRepo;
+import com.example.rentalTool_BackEnd.user.service.EmailVerificationService;
 import com.example.rentalTool_BackEnd.user.service.UserService;
 import com.example.rentalTool_BackEnd.user.web.requests.ChangePasswordRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
@@ -25,6 +26,7 @@ class UserServiceImpl implements UserService {
 
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final EmailVerificationService emailVerificationService;
 
 //    @Override
 //    public User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException {
@@ -57,7 +59,18 @@ class UserServiceImpl implements UserService {
         userRepo.findUserByEmail(userRegisterRequest.email()).ifPresent(u -> {
             throw new UserAlreadyExistException("User already exists");
         });
-        return userRepo.createUser(new User(passwordEncoder.encode(userRegisterRequest.password()), userRegisterRequest.email(), userRegisterRequest.lastName(), userRegisterRequest.firstName(), userType));
+        User user = userRepo.createUser(new User(
+                passwordEncoder.encode(userRegisterRequest.password()), 
+                userRegisterRequest.email(), 
+                userRegisterRequest.lastName(), 
+                userRegisterRequest.firstName(), 
+                userRegisterRequest.phoneNumber(),
+                userType));
+        
+        // Wyślij email weryfikacyjny
+        emailVerificationService.generateVerificationToken(user);
+        
+        return user;
     }
 
     @Override
