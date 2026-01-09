@@ -1,13 +1,12 @@
 package com.example.rentalTool_BackEnd.reservation.web.controller;
 
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
-import com.example.rentalTool_BackEnd.reservation.model.Terms;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
-import com.example.rentalTool_BackEnd.reservation.service.TermsService;
-import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.tool.spi.TermsExternalService;
+import com.example.rentalTool_BackEnd.shared.enums.Category;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
-import com.example.rentalTool_BackEnd.user.service.UserService;
+import com.example.rentalTool_BackEnd.user.spi.UserExternalService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,10 +40,10 @@ class ReservationControllerForbiddenTest {
     private ToolExternalService toolExternalService;
 
     @MockBean
-    private TermsService termsService;
+    private TermsExternalService termsExternalService;
 
     @MockBean
-    private UserService userService;
+    private UserExternalService userExternalService;
 
     private ToolExternalDto toolDto;
     private Reservation reservation;
@@ -81,9 +80,6 @@ class ReservationControllerForbiddenTest {
         when(reservationService.getReservationById(1L)).thenReturn(reservation);
         when(toolExternalService.getToolDtoById(1L)).thenReturn(toolDto);
         // reservation.renterId() = 2L, ale użytkownik = 99L (nie jest najemcą)
-        Terms terms = new Terms();
-        terms.setId(1L);
-        when(termsService.getTermsById(1L)).thenReturn(terms);
 
         String requestBody = """
                 {

@@ -1,6 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.spi;
 
-import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.shared.enums.Category;
 
 public record ToolExternalDto(
         long id,

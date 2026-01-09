@@ -1,5 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.service.impl;
 
+import com.example.rentalTool_BackEnd.tool.exception.InvalidFileTypeException;
 import com.example.rentalTool_BackEnd.tool.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -14,6 +15,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -37,16 +40,36 @@ public class FileStorageServiceImpl implements FileStorageService {
         // Normalizacja nazwy pliku
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
 
-        // Weryfikacja nazwy pliku
+        // Weryfikacja nazwy pliku - path traversal
         if (originalFilename.contains("..")) {
             throw new RuntimeException("Sorry! Filename contains invalid path sequence " + originalFilename);
         }
 
-        // Generowanie unikalnej nazwy pliku
+        // Walidacja MIME type
+        String contentType = file.getContentType();
+        List<String> allowedMimeTypes = Arrays.asList(
+            "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"
+        );
+
+        if (contentType == null || !allowedMimeTypes.contains(contentType.toLowerCase())) {
+            throw new InvalidFileTypeException(
+                "Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed. Received: " + contentType
+            );
+        }
+
+        // Generowanie unikalnej nazwy pliku i walidacja rozszerzenia
         String fileExtension = "";
         int lastDotIndex = originalFilename.lastIndexOf('.');
         if (lastDotIndex > 0) {
-            fileExtension = originalFilename.substring(lastDotIndex);
+            fileExtension = originalFilename.substring(lastDotIndex).toLowerCase();
+        }
+
+        // Walidacja rozszerzenia pliku
+        List<String> allowedExtensions = Arrays.asList(".jpg", ".jpeg", ".png", ".gif", ".webp");
+        if (!allowedExtensions.contains(fileExtension)) {
+            throw new InvalidFileTypeException(
+                "Invalid file extension. Only .jpg, .jpeg, .png, .gif, .webp are allowed. Received: " + fileExtension
+            );
         }
 
         String uniqueFilename = UUID.randomUUID().toString() + fileExtension;

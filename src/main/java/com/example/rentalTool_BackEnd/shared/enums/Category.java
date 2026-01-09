@@ -1,4 +1,4 @@
-package com.example.rentalTool_BackEnd.tool.model.enums;
+package com.example.rentalTool_BackEnd.shared.enums;
 
 public enum Category {
     GARDENING,           // Ogrodnictwo

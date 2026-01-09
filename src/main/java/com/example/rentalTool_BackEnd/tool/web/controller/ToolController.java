@@ -2,8 +2,8 @@ package com.example.rentalTool_BackEnd.tool.web.controller;
 
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
 import com.example.rentalTool_BackEnd.shared.util.TimeUtil;
-import com.example.rentalTool_BackEnd.reservation.service.TermsService;
-import com.example.rentalTool_BackEnd.reservation.exception.TermsNotFoundException;
+import com.example.rentalTool_BackEnd.tool.terms.exception.TermsNotFoundException;
+import com.example.rentalTool_BackEnd.tool.terms.service.TermsService;
 import com.example.rentalTool_BackEnd.tool.model.Tool;
 import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.web.mapper.ToolDtoMapper;
@@ -219,17 +219,21 @@ public class ToolController {
             @RequestParam(value = "page", defaultValue = "0") int page,
             @Parameter(description = "Rozmiar strony (domyślnie 10)", example = "10")
             @RequestParam(value = "size", defaultValue = "10") int size,
-            @Parameter(description = "Pole sortowania (domyślnie id, ignorowane gdy użyto geolokalizacji)", example = "id")
+            @Parameter(description = "Pole sortowania (domyślnie id, distance dla geolokalizacji, możliwe: id, name, pricePerDay, createdAt, updatedAt, distance)", example = "id")
             @RequestParam(value = "sortBy", defaultValue = "id") String sortBy,
-            @Parameter(description = "Kierunek sortowania (asc/desc, domyślnie desc, ignorowane gdy użyto geolokalizacji)", example = "desc")
+            @Parameter(description = "Kierunek sortowania (asc/desc, domyślnie desc)", example = "desc")
             @RequestParam(value = "sortDirection", defaultValue = "desc") String sortDirection
     ) {
         // Sprawdź czy używamy geolokalizacji
         boolean useGeolocation = latitude != null && longitude != null;
 
         if (useGeolocation) {
-            // Wyszukiwanie z geolokalizacją
-            Pageable pageable = PageRequest.of(page, size);
+            // Wyszukiwanie z geolokalizacją - uwzględniamy sortowanie
+            Pageable pageable = PageRequest.of(
+                    page,
+                    size,
+                    sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()
+            );
 
             // Zabezpieczenie: jeśli radiusKm jest 0 lub ujemne, traktuj jako null (wszystkie)
             Double effectiveRadius = (radiusKm != null && radiusKm > 0) ? radiusKm : null;

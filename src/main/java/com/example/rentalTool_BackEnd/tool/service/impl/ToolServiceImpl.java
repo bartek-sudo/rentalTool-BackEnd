@@ -9,7 +9,7 @@ import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import com.example.rentalTool_BackEnd.tool.repo.ToolImageRepo;
 import com.example.rentalTool_BackEnd.tool.service.mapper.ToolExternalMapper;
 import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.shared.enums.Category;
 import com.example.rentalTool_BackEnd.tool.repo.ToolRepo;
 import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
@@ -90,8 +90,14 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         tool.setLatitude(toolUpdateRequest.latitude());
         tool.setLongitude(toolUpdateRequest.longitude());
         tool.setTermsId(toolUpdateRequest.termsId());
+        tool.setUpdatedAt(java.time.Instant.now());
 
-        tool.requiresRemoderation("Tool updated by owner");
+        // Reset do PENDING - wymaga ponownej moderacji po edycji
+        tool.setModerationStatus(ModerationStatus.PENDING);
+        tool.setModeratorId(null);
+        tool.setModeratedAt(null);
+        tool.setModerationComment("Tool updated by owner - requires remoderation");
+        tool.setActive(false);
 
         return toolRepo.saveTool(tool);
     }
@@ -177,8 +183,18 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
             filteredTools = allTools.stream().collect(Collectors.toList());
         }
 
-        // Sortuj według odległości jeśli podano lokalizację użytkownika
-        if (userLatitude != null && userLongitude != null) {
+        // Sortuj narzędzia według parametrów z Pageable lub domyślnie według odległości
+        if (pageable.getSort().isSorted()) {
+            // Jeśli użytkownik wybrał sortowanie, użyj go
+            pageable.getSort().forEach(order -> {
+                Comparator<Tool> comparator = getComparatorForField(order.getProperty(), userLatitude, userLongitude);
+                if (order.isDescending()) {
+                    comparator = comparator.reversed();
+                }
+                filteredTools.sort(comparator);
+            });
+        } else if (userLatitude != null && userLongitude != null) {
+            // Domyślnie sortuj według odległości jeśli podano lokalizację użytkownika
             filteredTools.sort(Comparator.comparingDouble(tool -> {
                 if (tool.getLatitude() == null || tool.getLongitude() == null) {
                     return Double.MAX_VALUE; // Narzędzia bez lokalizacji na końcu
@@ -197,6 +213,35 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         List<Tool> pageContent = filteredTools.subList(start, end);
 
         return new PageImpl<>(pageContent, pageable, filteredTools.size());
+    }
+
+    /**
+     * Zwraca komparator dla danego pola sortowania
+     */
+    private Comparator<Tool> getComparatorForField(String field, Double userLatitude, Double userLongitude) {
+        return switch (field.toLowerCase()) {
+            case "name" -> Comparator.comparing(Tool::getName, String.CASE_INSENSITIVE_ORDER);
+            case "priceperday" -> Comparator.comparing(Tool::getPricePerDay);
+            case "createdat" -> Comparator.comparing(Tool::getCreatedAt);
+            case "updatedat" -> Comparator.comparing(Tool::getUpdatedAt);
+            case "id" -> Comparator.comparing(Tool::getId);
+            case "distance" -> {
+                if (userLatitude == null || userLongitude == null) {
+                    // Jeśli nie ma lokalizacji, sortuj według ID jako fallback
+                    yield Comparator.comparing(Tool::getId);
+                }
+                yield Comparator.comparingDouble(tool -> {
+                    if (tool.getLatitude() == null || tool.getLongitude() == null) {
+                        return Double.MAX_VALUE; // Narzędzia bez lokalizacji na końcu
+                    }
+                    return GeoLocationUtil.calculateDistance(
+                            userLatitude, userLongitude,
+                            tool.getLatitude(), tool.getLongitude()
+                    );
+                });
+            }
+            default -> Comparator.comparing(Tool::getId); // Domyślnie sortuj według ID
+        };
     }
 
     // Metody do obsługi zdjęć
@@ -316,11 +361,6 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     // ===== IMPLEMENTACJA METOD MODERACJI =====
 
     @Override
-    public Page<Tool> getToolsPendingModeration(Pageable pageable) {
-        return toolRepo.findByModerationStatus(ModerationStatus.PENDING, pageable);
-    }
-
-    @Override
     public Page<Tool> getToolsByModerationStatus(ModerationStatus status, Pageable pageable) {
         return toolRepo.findByModerationStatus(status, pageable);
     }
@@ -346,19 +386,5 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         tool.reject(moderatorId, comment);
         return toolRepo.saveTool(tool);
     }
-
-    @Transactional
-    @Override
-    public Tool requireRemoderation(long toolId, String reason) {
-        Tool tool = getToolById(toolId);
-
-        if (reason == null || reason.trim().isEmpty()) {
-            throw new IllegalArgumentException("Remoderation reason is required");
-        }
-
-        tool.requiresRemoderation(reason);
-        return toolRepo.saveTool(tool);
-    }
-
 
 }

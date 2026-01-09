@@ -101,13 +101,14 @@ class SecurityConfig {
                                         
                                         // Terms endpoints
                                         .requestMatchers(GET, "/api/v1/terms/**").permitAll()
+                                        .requestMatchers(POST, "/api/v1/terms").hasAuthority("ADMIN")
+                                        .requestMatchers(PUT, "/api/v1/terms/{id}").hasAuthority("ADMIN")
+                                        .requestMatchers(DELETE, "/api/v1/terms/{id}").hasAuthority("ADMIN")
 
                                         // Endpoints dla moderatora
-                                        .requestMatchers(GET, "/api/v1/moderation/pending").hasAnyAuthority("MODERATOR")
                                         .requestMatchers(GET, "/api/v1/moderation/status/{status}").hasAnyAuthority("MODERATOR")
                                         .requestMatchers(POST, "/api/v1/moderation/{toolId}/approve").hasAnyAuthority("MODERATOR")
                                         .requestMatchers(POST, "/api/v1/moderation/{toolId}/reject").hasAnyAuthority("MODERATOR")
-                                        .requestMatchers(POST, "/api/v1/moderation/{toolId}/require-remoderation").hasAuthority("ADMIN")
 
                                         .requestMatchers("/v3/api-docs/**").permitAll()
                                         .requestMatchers("/swagger-ui/**").permitAll()

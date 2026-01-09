@@ -59,29 +59,6 @@ class ToolControllerIllegalArgumentExceptionTest {
                 .andExpect(jsonPath("$.message").value("Rejection comment is required"));
     }
 
-    @Test
-    void testRequireRemoderation_WithoutReason_ShouldReturn400() throws Exception {
-        // Próba oznaczenia narzędzia jako wymagającego ponownej moderacji bez powodu
-        when(toolService.requireRemoderation(anyLong(), any()))
-                .thenThrow(new IllegalArgumentException("Remoderation reason is required"));
-
-        String requestBody = """
-                {
-                    "comment": ""
-                }
-                """;
-
-        mockMvc.perform(post("/api/v1/moderation/1/require-remoderation")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody)
-                        .principal(createMockAuthentication(1L)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.statusCode").value(400))
-                .andExpect(jsonPath("$.httpStatus").value("BAD_REQUEST"))
-                .andExpect(jsonPath("$.reason").value("Invalid argument"))
-                .andExpect(jsonPath("$.message").value("Remoderation reason is required"));
-    }
-
     private org.springframework.security.core.Authentication createMockAuthentication(long userId) {
         Jwt jwt = Jwt.withTokenValue("mock-token")
                 .header("alg", "none")

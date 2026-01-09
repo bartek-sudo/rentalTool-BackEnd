@@ -2,7 +2,7 @@ package com.example.rentalTool_BackEnd.reservation.web.controller;
 
 import com.example.rentalTool_BackEnd.reservation.exception.ToolNotAvailableException;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
-import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.shared.enums.Category;
 import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;

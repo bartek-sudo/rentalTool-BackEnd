@@ -49,8 +49,6 @@ public interface ToolService {
 
     Tool updateToolTerms(long toolId, long ownerId, Long termsId);
 
-    Page<Tool> getToolsPendingModeration(Pageable pageable);
-
     Page<Tool> getToolsByModerationStatus(ModerationStatus status, Pageable pageable);
 
     @Transactional
@@ -58,7 +56,4 @@ public interface ToolService {
 
     @Transactional
     Tool rejectTool(long toolId, long moderatorId, String comment);
-
-    @Transactional
-    Tool requireRemoderation(long toolId, String reason);
 }

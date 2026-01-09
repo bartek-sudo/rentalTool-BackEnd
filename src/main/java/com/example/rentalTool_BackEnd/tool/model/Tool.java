@@ -1,6 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.model;
 
-import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.shared.enums.Category;
 import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -146,17 +146,6 @@ public class Tool {
         this.moderatedAt = Instant.now();
         this.moderationComment = comment;
         this.isActive = false; // odrzucone narzędzie jest nieaktywne
-    }
-
-    /**
-     * Oznacza narzędzie jako wymagające ponownej moderacji
-     */
-    public void requiresRemoderation(String reason) {
-        this.moderationStatus = ModerationStatus.PENDING;
-        this.moderatorId = null;
-        this.moderatedAt = null;
-        this.moderationComment = reason;
-        this.isActive = false; // podczas ponownej moderacji narzędzie jest nieaktywne
     }
 
     /**

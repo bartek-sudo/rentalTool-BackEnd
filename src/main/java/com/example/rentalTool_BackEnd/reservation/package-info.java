@@ -1,5 +1,5 @@
 @ApplicationModule(
-        allowedDependencies = {"shared", "tool :: spi"},
+        allowedDependencies = {"shared", "tool :: spi", "user :: spi"},
         type = ApplicationModule.Type.CLOSED,
         displayName = "reservation"
 )

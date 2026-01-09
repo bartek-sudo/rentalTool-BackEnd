@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.modulith.core.ApplicationModules;
 import org.springframework.modulith.docs.Documenter;
 
-public class ModolithTests {
+public class  ModolithTests {
     static ApplicationModules modules = ApplicationModules.of(RentalToolBackEndApplication.class);
 
     @Test

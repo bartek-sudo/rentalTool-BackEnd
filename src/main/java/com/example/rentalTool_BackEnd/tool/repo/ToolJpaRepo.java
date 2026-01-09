@@ -1,7 +1,7 @@
 package com.example.rentalTool_BackEnd.tool.repo;
 
 import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.tool.model.enums.Category;
+import com.example.rentalTool_BackEnd.shared.enums.Category;
 import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

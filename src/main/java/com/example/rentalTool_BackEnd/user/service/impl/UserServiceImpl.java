@@ -8,6 +8,9 @@ import com.example.rentalTool_BackEnd.user.model.enums.UserType;
 import com.example.rentalTool_BackEnd.user.repo.UserRepo;
 import com.example.rentalTool_BackEnd.user.service.EmailVerificationService;
 import com.example.rentalTool_BackEnd.user.service.UserService;
+import com.example.rentalTool_BackEnd.user.service.mapper.UserExternalMapper;
+import com.example.rentalTool_BackEnd.user.spi.UserExternalDto;
+import com.example.rentalTool_BackEnd.user.spi.UserExternalService;
 import com.example.rentalTool_BackEnd.user.web.requests.ChangePasswordRequest;
 import com.example.rentalTool_BackEnd.user.web.requests.UserRegisterRequest;
 import lombok.RequiredArgsConstructor;
@@ -22,11 +25,12 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-class UserServiceImpl implements UserService {
+class UserServiceImpl implements UserService, UserExternalService {
 
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final UserExternalMapper userExternalMapper;
 
 //    @Override
 //    public User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException {
@@ -128,6 +132,14 @@ class UserServiceImpl implements UserService {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid role: " + role);
         }
+    }
+
+    // UserExternalService implementation
+    @Override
+    public UserExternalDto getUserDtoById(long userId) {
+        User user = userRepo.findUserById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found by id"));
+        return userExternalMapper.toDto(user);
     }
 
 }

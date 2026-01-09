@@ -6,13 +6,12 @@ import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
 import com.example.rentalTool_BackEnd.reservation.web.mapper.ReservationMapper;
 import com.example.rentalTool_BackEnd.reservation.web.requests.ReservationCreateRequest;
 import com.example.rentalTool_BackEnd.reservation.web.requests.RegulationsAcceptRequest;
-import com.example.rentalTool_BackEnd.reservation.service.TermsService;
-import com.example.rentalTool_BackEnd.reservation.exception.TermsNotFoundException;
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
+import com.example.rentalTool_BackEnd.tool.spi.TermsExternalService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
-import com.example.rentalTool_BackEnd.user.service.UserService;
-import com.example.rentalTool_BackEnd.user.model.User;
+import com.example.rentalTool_BackEnd.user.spi.UserExternalDto;
+import com.example.rentalTool_BackEnd.user.spi.UserExternalService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -39,8 +38,8 @@ public class ReservationController {
     private final ReservationService reservationService;
     private final ToolExternalService toolExternalService;
     private final ReservationMapper reservationMapper;
-    private final UserService userService;
-    private final TermsService termsService;
+    private final UserExternalService userExternalService;
+    private final TermsExternalService termsExternalService;
 
     @Operation(summary = "Utwórz rezerwację", description = "Tworzy nową rezerwację narzędzia")
     @ApiResponses(value = {
@@ -453,8 +452,8 @@ public class ReservationController {
         }
 
         try {
-            termsService.getTermsById(tool.termsId());
-        } catch (TermsNotFoundException e) {
+            termsExternalService.getTermsDtoById(tool.termsId());
+        } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(HttpResponse.builder()
                             .statusCode(HttpStatus.BAD_REQUEST.value())
@@ -465,18 +464,18 @@ public class ReservationController {
         }
 
         reservation = reservationService.acceptRegulationsReservation(reservationId, tool.termsId());
-        
+
         // Pobierz dane kontaktowe najemcy i właściciela
-        User renter = userService.getUserById(reservation.getRenterId());
-        User owner = userService.getUserById(tool.ownerId());
-        
+        UserExternalDto renter = userExternalService.getUserDtoById(reservation.getRenterId());
+        UserExternalDto owner = userExternalService.getUserDtoById(tool.ownerId());
+
         Map<String, Object> contactInfo = Map.of(
-                "renterEmail", renter.getEmail(),
-                "renterName", renter.getFirstName() + " " + renter.getLastName(),
-                "renterPhoneNumber", renter.getPhoneNumber() != null ? renter.getPhoneNumber() : "Nie podano",
-                "ownerEmail", owner.getEmail(),
-                "ownerName", owner.getFirstName() + " " + owner.getLastName(),
-                "ownerPhoneNumber", owner.getPhoneNumber() != null ? owner.getPhoneNumber() : "Nie podano"
+                "renterEmail", renter.email(),
+                "renterName", renter.firstName() + " " + renter.lastName(),
+                "renterPhoneNumber", renter.phoneNumber() != null ? renter.phoneNumber() : "Nie podano",
+                "ownerEmail", owner.email(),
+                "ownerName", owner.firstName() + " " + owner.lastName(),
+                "ownerPhoneNumber", owner.phoneNumber() != null ? owner.phoneNumber() : "Nie podano"
         );
         
         return ResponseEntity.status(HttpStatus.OK)
@@ -493,7 +492,7 @@ public class ReservationController {
 
     }
 
-    @Operation(summary = "Anuluj rezerwację", description = "Anuluje rezerwację (tylko najemca, tylko status PENDING lub CONFIRMED)")
+    @Operation(summary = "Anuluj rezerwację", description = "Anuluje rezerwację (PENDING i CONFIRMED: obie strony mogą anulować)")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Rezerwacja anulowana pomyślnie",
                     content = @Content(schema = @Schema(implementation = HttpResponse.class),
@@ -525,7 +524,7 @@ public class ReservationController {
                                       "message": "Reservation is not in pending or confirmed status"
                                     }
                                     """))),
-            @ApiResponse(responseCode = "403", description = "Brak uprawnień - nie jesteś najemcą",
+            @ApiResponse(responseCode = "403", description = "Brak uprawnień do anulowania rezerwacji",
                     content = @Content(schema = @Schema(implementation = HttpResponse.class),
                             examples = @ExampleObject(value = """
                                     {
@@ -533,7 +532,7 @@ public class ReservationController {
                                       "httpStatus": "FORBIDDEN",
                                       "statusCode": 403,
                                       "reason": "Forbidden",
-                                      "message": "You are not the renter of this tool"
+                                      "message": "You don't have permission to cancel this reservation"
                                     }
                                     """))),
             @ApiResponse(responseCode = "404", description = "Rezerwacja nie znaleziona",
@@ -555,17 +554,9 @@ public class ReservationController {
         final Jwt jwt = (Jwt) authentication.getPrincipal();
         final long userId = jwt.getClaim("user_id");
         Reservation reservation = reservationService.getReservationById(reservationId);
+        final ToolExternalDto tool = toolExternalService.getToolDtoById(reservation.getToolId());
 
-        if (reservation.getRenterId() != userId) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.FORBIDDEN.value())
-                            .httpStatus(HttpStatus.FORBIDDEN)
-                            .reason("Forbidden")
-                            .message("You are not the renter of this tool")
-                            .build());
-        }
-
+        // Sprawdzenie statusu rezerwacji
         if (reservation.getStatus() != ReservationStatus.PENDING &&
                 reservation.getStatus() != ReservationStatus.CONFIRMED) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -575,6 +566,31 @@ public class ReservationController {
                             .reason("Bad Request")
                             .message("Reservation is not in pending or confirmed status")
                             .build());
+        }
+
+        // Logika uprawnień w zależności od statusu
+        if (reservation.getStatus() == ReservationStatus.PENDING) {
+            // PENDING: obie strony mogą anulować (najemca lub właściciel narzędzia)
+            if (reservation.getRenterId() != userId && tool.ownerId() != userId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(HttpResponse.builder()
+                                .statusCode(HttpStatus.FORBIDDEN.value())
+                                .httpStatus(HttpStatus.FORBIDDEN)
+                                .reason("Forbidden")
+                                .message("You don't have permission to cancel this reservation")
+                                .build());
+            }
+        } else if (reservation.getStatus() == ReservationStatus.CONFIRMED) {
+            // CONFIRMED: obie strony mogą anulować (najemca lub właściciel narzędzia)
+            if (reservation.getRenterId() != userId && tool.ownerId() != userId) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(HttpResponse.builder()
+                                .statusCode(HttpStatus.FORBIDDEN.value())
+                                .httpStatus(HttpStatus.FORBIDDEN)
+                                .reason("Forbidden")
+                                .message("You don't have permission to cancel this reservation")
+                                .build());
+            }
         }
 
         reservation = reservationService.cancelReservation(reservationId);
