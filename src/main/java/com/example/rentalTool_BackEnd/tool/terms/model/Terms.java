@@ -1,6 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.terms.model;
 
-import com.example.rentalTool_BackEnd.shared.enums.Category;
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -20,9 +20,9 @@ public class Terms {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = true)
-    private Category category; // null oznacza regulamin ogólny
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @Column(nullable = false, length = 200)
     private String title;
@@ -39,5 +39,10 @@ public class Terms {
         this.content = content;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = Instant.now();
     }
 }

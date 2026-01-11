@@ -3,7 +3,7 @@ package com.example.rentalTool_BackEnd.reservation.web.controller;
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
 import com.example.rentalTool_BackEnd.tool.spi.TermsExternalService;
-import com.example.rentalTool_BackEnd.shared.enums.Category;
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import com.example.rentalTool_BackEnd.user.spi.UserExternalService;
@@ -47,11 +47,22 @@ class ReservationControllerForbiddenTest {
 
     private ToolExternalDto toolDto;
     private Reservation reservation;
+    private Category testCategory;
 
     @BeforeEach
     void setUp() {
-        toolDto = new ToolExternalDto(1L, 1L, 10.0, Category.OTHER, true, 1L);
+        testCategory = createTestCategory();
+        toolDto = new ToolExternalDto(1L, 1L, 10.0, testCategory, true, 1L);
         reservation = new Reservation(1L, 2L, LocalDate.now().plusDays(1), LocalDate.now().plusDays(5));
+    }
+
+    private Category createTestCategory() {
+        Category category = new Category();
+        category.setId(1L);
+        category.setName("OTHER");
+        category.setDisplayName("Inne");
+        category.setDescription("Pozostałe narzędzia");
+        return category;
     }
 
     @Test

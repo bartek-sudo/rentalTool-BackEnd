@@ -1,7 +1,7 @@
 package com.example.rentalTool_BackEnd.tool.terms.repo;
 
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.tool.terms.model.Terms;
-import com.example.rentalTool_BackEnd.shared.enums.Category;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 

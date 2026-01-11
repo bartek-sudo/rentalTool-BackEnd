@@ -2,7 +2,7 @@ package com.example.rentalTool_BackEnd.reservation.web.controller;
 
 import com.example.rentalTool_BackEnd.reservation.exception.ToolNotAvailableException;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
-import com.example.rentalTool_BackEnd.shared.enums.Category;
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
@@ -42,10 +42,21 @@ class ReservationExceptionBadRequestTest {
     private ToolService toolService;
 
     private ToolExternalDto toolDto;
+    private Category testCategory;
 
     @BeforeEach
     void setUp() {
-        toolDto = new ToolExternalDto(1L, 1L, 10.0, Category.OTHER, true, 1L);
+        testCategory = createTestCategory();
+        toolDto = new ToolExternalDto(1L, 1L, 10.0, testCategory, true, 1L);
+    }
+
+    private Category createTestCategory() {
+        Category category = new Category();
+        category.setId(1L);
+        category.setName("OTHER");
+        category.setDisplayName("Inne");
+        category.setDescription("Pozostałe narzędzia");
+        return category;
     }
 
     @Test

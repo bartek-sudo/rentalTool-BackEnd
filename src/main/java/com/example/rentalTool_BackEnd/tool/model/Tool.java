@@ -1,6 +1,6 @@
 package com.example.rentalTool_BackEnd.tool.model;
 
-import com.example.rentalTool_BackEnd.shared.enums.Category;
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -26,7 +26,8 @@ public class Tool {
     private String description;
     private double pricePerDay;
 
-    @Enumerated(EnumType.STRING)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
     private long ownerId;

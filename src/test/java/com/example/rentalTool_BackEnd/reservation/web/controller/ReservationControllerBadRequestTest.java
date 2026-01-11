@@ -3,7 +3,7 @@ package com.example.rentalTool_BackEnd.reservation.web.controller;
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
 import com.example.rentalTool_BackEnd.tool.spi.TermsExternalService;
-import com.example.rentalTool_BackEnd.shared.enums.Category;
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalService;
 import com.example.rentalTool_BackEnd.user.spi.UserExternalService;
@@ -46,16 +46,28 @@ class ReservationControllerBadRequestTest {
     private UserExternalService userExternalService;
 
     private ToolExternalDto toolDto;
+    private Category testCategory;
+
     @BeforeEach
     void setUp() {
-        toolDto = new ToolExternalDto(1L, 1L, 10.0, Category.OTHER, true, 1L);
+        testCategory = createTestCategory();
+        toolDto = new ToolExternalDto(1L, 1L, 10.0, testCategory, true, 1L);
+    }
+
+    private Category createTestCategory() {
+        Category category = new Category();
+        category.setId(1L);
+        category.setName("OTHER");
+        category.setDisplayName("Inne");
+        category.setDescription("Pozostałe narzędzia");
+        return category;
     }
 
     @Test
     void testCreateReservation_WithOwnTool_ShouldReturn400() throws Exception {
         // Użytkownik próbuje zarezerwować własne narzędzie
         long ownerId = 1L;
-        ToolExternalDto ownTool = new ToolExternalDto(1L, ownerId, 10.0, Category.OTHER, true, 1L);
+        ToolExternalDto ownTool = new ToolExternalDto(1L, ownerId, 10.0, testCategory, true, 1L);
 
         when(toolExternalService.getToolDtoById(1L)).thenReturn(ownTool);
 

@@ -1,6 +1,8 @@
 package com.example.rentalTool_BackEnd.tool.service.impl;
 
 import com.example.rentalTool_BackEnd.shared.util.GeoLocationUtil;
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
+import com.example.rentalTool_BackEnd.tool.category.service.CategoryService;
 import com.example.rentalTool_BackEnd.tool.exception.ImageNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.ToolNotFoundException;
 import com.example.rentalTool_BackEnd.tool.exception.UnauthorizedToolAccessException;
@@ -9,7 +11,6 @@ import com.example.rentalTool_BackEnd.tool.model.enums.ModerationStatus;
 import com.example.rentalTool_BackEnd.tool.repo.ToolImageRepo;
 import com.example.rentalTool_BackEnd.tool.service.mapper.ToolExternalMapper;
 import com.example.rentalTool_BackEnd.tool.model.Tool;
-import com.example.rentalTool_BackEnd.shared.enums.Category;
 import com.example.rentalTool_BackEnd.tool.repo.ToolRepo;
 import com.example.rentalTool_BackEnd.tool.service.ToolService;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
@@ -36,6 +37,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     private final ToolExternalMapper toolExternalMapper;
     private final FileStorageServiceImpl fileStorageService;
     private final ToolImageRepo toolImageRepo;
+    private final CategoryService categoryService;
 
     @Override
     public Tool getToolById(long id) {
@@ -58,16 +60,12 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
 
     @Override
     public Page<Tool> getActiveToolsByCategory(String category, Pageable pageable) {
-        try {
-            Category categoryEnum = Category.valueOf(category.toUpperCase());
-            return toolRepo.findAllApprovedAndActiveToolsByCategory(categoryEnum, pageable);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid category: " + category + ". Valid categories are: GARDENING, CONSTRUCTION, ELECTRIC, PLUMBING, OTHER");
-        }
+        Category categoryEntity = categoryService.getCategoryByName(category);
+        return toolRepo.findAllApprovedAndActiveToolsByCategory(categoryEntity, pageable);
     }
     @Override
     public Tool createTool(ToolCreateRequest toolCreateRequest, long ownerId) {
-        Category category = Category.valueOf(toolCreateRequest.category());
+        Category category = categoryService.getCategoryByName(toolCreateRequest.category());
         Tool tool = new Tool(toolCreateRequest.name(), toolCreateRequest.description(),
                 toolCreateRequest.pricePerDay(), category, ownerId, toolCreateRequest.address(),
                 toolCreateRequest.latitude(), toolCreateRequest.longitude(), toolCreateRequest.termsId());
@@ -85,7 +83,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         tool.setName(toolUpdateRequest.name());
         tool.setDescription(toolUpdateRequest.description());
         tool.setPricePerDay(toolUpdateRequest.pricePerDay());
-        tool.setCategory(Category.valueOf(toolUpdateRequest.category()));
+        tool.setCategory(categoryService.getCategoryByName(toolUpdateRequest.category()));
         tool.setAddress(toolUpdateRequest.address());
         tool.setLatitude(toolUpdateRequest.latitude());
         tool.setLongitude(toolUpdateRequest.longitude());
@@ -128,12 +126,8 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
 
     @Override
     public Page<Tool> searchActiveTools(String searchTerm, String category, Pageable pageable) {
-        try {
-            Category categoryEnum = Category.valueOf(category.toUpperCase());
-            return toolRepo.findApprovedToolsByNameOrDescriptionAndCategory(searchTerm, searchTerm, categoryEnum, pageable);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid category: " + category + ". Valid categories are: GARDENING, CONSTRUCTION, ELECTRIC, PLUMBING, OTHER");
-        }
+        Category categoryEntity = categoryService.getCategoryByName(category);
+        return toolRepo.findApprovedToolsByNameOrDescriptionAndCategory(searchTerm, searchTerm, categoryEntity, pageable);
     }
 
     @Override
@@ -151,12 +145,14 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         boolean hasCategory = category != null && !category.trim().isEmpty();
 
         if (hasSearchTerm && hasCategory) {
+            Category categoryEntity = categoryService.getCategoryByName(category);
             allToolsPage = toolRepo.findApprovedToolsByNameOrDescriptionAndCategory(searchTerm, searchTerm,
-                    Category.valueOf(category.toUpperCase()), Pageable.unpaged());
+                    categoryEntity, Pageable.unpaged());
         } else if (hasSearchTerm) {
             allToolsPage = toolRepo.findApprovedToolsByNameOrDescription(searchTerm, searchTerm, Pageable.unpaged());
         } else if (hasCategory) {
-            allToolsPage = toolRepo.findAllApprovedAndActiveToolsByCategory(Category.valueOf(category.toUpperCase()), Pageable.unpaged());
+            Category categoryEntity = categoryService.getCategoryByName(category);
+            allToolsPage = toolRepo.findAllApprovedAndActiveToolsByCategory(categoryEntity, Pageable.unpaged());
         } else {
             allToolsPage = toolRepo.findAllApprovedAndActiveTools(Pageable.unpaged());
         }

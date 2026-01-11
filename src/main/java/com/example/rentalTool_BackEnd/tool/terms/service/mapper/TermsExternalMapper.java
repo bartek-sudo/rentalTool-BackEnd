@@ -9,7 +9,8 @@ public class TermsExternalMapper {
     public TermsExternalDto toDto(Terms terms) {
         return new TermsExternalDto(
                 terms.getId(),
-                terms.getCategory() != null ? terms.getCategory().name() : null,
+                terms.getCategory() != null ? terms.getCategory().getId() : null,
+                terms.getCategory() != null ? terms.getCategory().getName() : null,
                 terms.getTitle(),
                 terms.getContent()
         );

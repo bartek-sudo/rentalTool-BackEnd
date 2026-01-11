@@ -9,7 +9,8 @@ public class TermsMapper {
     public TermsDto toDto(Terms terms) {
         return new TermsDto(
                 terms.getId(),
-                terms.getCategory() != null ? terms.getCategory().name() : null,
+                terms.getCategory() != null ? terms.getCategory().getId() : null,
+                terms.getCategory() != null ? terms.getCategory().getName() : null,
                 terms.getTitle(),
                 terms.getContent()
         );

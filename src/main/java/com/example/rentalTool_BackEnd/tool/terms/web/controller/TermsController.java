@@ -1,11 +1,12 @@
 package com.example.rentalTool_BackEnd.tool.terms.web.controller;
 
+import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.shared.model.HttpResponse;
+import com.example.rentalTool_BackEnd.tool.category.service.CategoryService;
 import com.example.rentalTool_BackEnd.tool.terms.model.Terms;
 import com.example.rentalTool_BackEnd.tool.terms.service.TermsService;
 import com.example.rentalTool_BackEnd.tool.terms.web.mapper.TermsMapper;
 import com.example.rentalTool_BackEnd.tool.terms.web.requests.TermsRequest;
-import com.example.rentalTool_BackEnd.shared.enums.Category;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class TermsController {
     private final TermsService termsService;
     private final TermsMapper termsMapper;
+    private final CategoryService categoryService;
 
     @Operation(summary = "Pobierz regulaminy dla kategorii", description = "Zwraca listę dostępnych regulaminów dla danej kategorii narzędzia (włącznie z regulaminami ogólnymi)")
     @ApiResponses(value = {
@@ -52,31 +54,55 @@ public class TermsController {
                                     }
                                     """)))
     })
-    @GetMapping("/category/{category}")
-    public ResponseEntity<HttpResponse> getTermsForCategory(@PathVariable("category") String category) {
-        try {
-            Category categoryEnum = Category.valueOf(category.toUpperCase());
-            List<Terms> terms = termsService.getTermsForCategory(categoryEnum);
+    @GetMapping("/category/{categoryName}")
+    public ResponseEntity<HttpResponse> getTermsForCategory(@PathVariable("categoryName") String categoryName) {
+        Category category = categoryService.getCategoryByName(categoryName);
+        List<Terms> terms = termsService.getTermsForCategory(category);
 
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.OK.value())
-                            .httpStatus(HttpStatus.OK)
-                            .reason("Terms retrieved")
-                            .message("Terms for category: " + category)
-                            .data(Map.of("terms", terms.stream()
-                                    .map(termsMapper::toDto)
-                                    .toList()))
-                            .build());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(HttpResponse.builder()
-                            .statusCode(HttpStatus.BAD_REQUEST.value())
-                            .httpStatus(HttpStatus.BAD_REQUEST)
-                            .reason("Invalid category")
-                            .message("Invalid category: " + category)
-                            .build());
-        }
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Terms retrieved")
+                        .message("Terms for category: " + categoryName)
+                        .data(Map.of("terms", terms.stream()
+                                .map(termsMapper::toDto)
+                                .toList()))
+                        .build());
+    }
+
+    @Operation(summary = "Pobierz wszystkie unikalne kategorie", description = "Zwraca listę wszystkich unikalnych kategorii regulaminów")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Lista kategorii pobrana pomyślnie",
+                    content = @Content(schema = @Schema(implementation = HttpResponse.class),
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timeStamp": "2025-11-08T15:30:00",
+                                      "httpStatus": "OK",
+                                      "statusCode": 200,
+                                      "reason": "Categories retrieved",
+                                      "message": "All unique categories",
+                                      "data": {
+                                        "categories": ["BUDOWLANE", "OGRODOWE", "ELEKTRONARZEDZIA"]
+                                      }
+                                    }
+                                    """)))
+    })
+    @GetMapping("/categories")
+    public ResponseEntity<HttpResponse> getAllCategories() {
+        // Przekierowanie do CategoryController - ten endpoint powinien używać /api/v1/categories
+        List<Category> categories = termsService.getCategoriesWithoutTerms();
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(HttpResponse.builder()
+                        .statusCode(HttpStatus.OK.value())
+                        .httpStatus(HttpStatus.OK)
+                        .reason("Categories retrieved")
+                        .message("All unique categories")
+                        .data(Map.of("categories", categories.stream()
+                                .map(c -> Map.of("id", c.getId(), "name", c.getName(), "displayName", c.getDisplayName()))
+                                .toList()))
+                        .build());
     }
 
     @Operation(summary = "Pobierz wszystkie regulaminy", description = "Zwraca listę wszystkich dostępnych regulaminów")
@@ -195,7 +221,7 @@ public class TermsController {
     @PostMapping
     public ResponseEntity<HttpResponse> createTerm(@Valid @RequestBody TermsRequest request) {
         try {
-            Terms terms = termsService.createTerm(request.category(), request.title(), request.content());
+            Terms terms = termsService.createTerm(request.categoryId(), request.title(), request.content());
 
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(HttpResponse.builder()
@@ -245,7 +271,7 @@ public class TermsController {
             @PathVariable("id") Long id,
             @Valid @RequestBody TermsRequest request) {
         try {
-            Terms terms = termsService.updateTerm(id, request.category(), request.title(), request.content());
+            Terms terms = termsService.updateTerm(id, request.categoryId(), request.title(), request.content());
 
             return ResponseEntity.status(HttpStatus.OK)
                     .body(HttpResponse.builder()

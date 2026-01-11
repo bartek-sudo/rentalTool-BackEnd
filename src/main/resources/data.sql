@@ -3,6 +3,87 @@
 -- Rental Tool Backend
 -- ============================================
 
+-- ============================================
+-- MIGRACJA: Konwersja kategorii z enum na encję
+-- ============================================
+
+-- Krok 1: Utwórz tabelę categories jeśli nie istnieje
+CREATE TABLE IF NOT EXISTS categories (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    description VARCHAR(500),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Krok 2: Wstaw domyślne kategorie (tylko jeśli tabela jest pusta)
+INSERT INTO categories (name, display_name, description, created_at, updated_at)
+SELECT * FROM (VALUES
+    ('GARDENING', 'Ogrodnictwo', 'Narzędzia ogrodnicze, kosiarki, przycinaki', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('CONSTRUCTION', 'Budownictwo', 'Narzędzia budowlane, wiertarki, młoty', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('ELECTRIC', 'Elektronarzędzia', 'Narzędzia elektryczne i akumulatorowe', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('PLUMBING', 'Hydraulika', 'Narzędzia hydrauliczne, klucze, rury', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('AUTOMOTIVE', 'Motoryzacja', 'Narzędzia samochodowe, podnośniki, klucze', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('PAINTING', 'Malowanie', 'Narzędzia malarskie, pędzle, wałki, sprężarki', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('CLEANING', 'Sprzątanie', 'Urządzenia czyszczące, odkurzacze, myjki', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('WOODWORKING', 'Stolarstwo', 'Narzędzia stolarskie, piły, strugi', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('METALWORKING', 'Obróbka metalu', 'Narzędzia do obróbki metalu, szlifierki', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('OUTDOOR', 'Sprzęt zewnętrzny', 'Sprzęt do użytku na zewnątrz', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('OTHER', 'Inne', 'Pozostałe narzędzia', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+) AS new_categories(name, display_name, description, created_at, updated_at)
+WHERE NOT EXISTS (SELECT 1 FROM categories LIMIT 1);
+
+-- Krok 3: Dodaj kolumnę category_id do tools (jeśli nie istnieje)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tools' AND column_name='category_id') THEN
+        ALTER TABLE tools ADD COLUMN category_id BIGINT;
+
+        -- Migruj dane ze starej kolumny category (jeśli istnieje)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='tools' AND column_name='category') THEN
+            UPDATE tools t
+            SET category_id = c.id
+            FROM categories c
+            WHERE t.category = c.name;
+
+            -- Ustaw OTHER dla narzędzi bez kategorii
+            UPDATE tools
+            SET category_id = (SELECT id FROM categories WHERE name = 'OTHER')
+            WHERE category_id IS NULL;
+
+            -- Usuń starą kolumnę category
+            ALTER TABLE tools DROP COLUMN category;
+        END IF;
+
+        -- Ustaw NOT NULL i dodaj foreign key
+        ALTER TABLE tools ALTER COLUMN category_id SET NOT NULL;
+        ALTER TABLE tools ADD CONSTRAINT fk_tools_category FOREIGN KEY (category_id) REFERENCES categories(id);
+    END IF;
+END $$;
+
+-- Krok 4: Dodaj kolumnę category_id do terms (jeśli nie istnieje)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='terms' AND column_name='category_id') THEN
+        ALTER TABLE terms ADD COLUMN category_id BIGINT;
+
+        -- Migruj dane ze starej kolumny category (jeśli istnieje)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='terms' AND column_name='category') THEN
+            UPDATE terms t
+            SET category_id = c.id
+            FROM categories c
+            WHERE t.category = c.name;
+
+            -- Usuń starą kolumnę category
+            ALTER TABLE terms DROP COLUMN category;
+        END IF;
+
+        -- Dodaj foreign key (nullable dla regulaminów ogólnych)
+        ALTER TABLE terms ADD CONSTRAINT fk_terms_category FOREIGN KEY (category_id) REFERENCES categories(id);
+    END IF;
+END $$;
+
 -- Czyszczenie istniejących danych w odpowiedniej kolejności (od zależnych do głównych)
 DELETE FROM tool_images WHERE 1=1;
 DELETE FROM reservations WHERE 1=1;
@@ -10,6 +91,7 @@ DELETE FROM tools WHERE 1=1;
 DELETE FROM terms WHERE 1=1;
 DELETE FROM email_verification_tokens WHERE 1=1;
 DELETE FROM users WHERE 1=1;
+-- Nie usuwamy categories, ponieważ INSERT ma warunek WHERE NOT EXISTS
 
 -- ============================================
 -- UŻYTKOWNICY
@@ -36,9 +118,10 @@ INSERT INTO users (id, first_name, last_name, email, password, phone_number, blo
 -- REGULAMINY (TERMS) - muszą być przed TOOLS
 -- ============================================
 
-INSERT INTO terms (id, category, title, content, created_at, updated_at) VALUES
--- Regulamin ogólny (dla wszystkich kategorii)
-(1, NULL, 'Regulamin ogólny wypożyczania narzędzi',
+-- Wstaw domyślne regulaminy
+INSERT INTO terms (id, category_id, title, content, created_at, updated_at) VALUES
+-- Regulamin ogólny (kategoria OTHER)
+(1, (SELECT id FROM categories WHERE name = 'OTHER'), 'Regulamin ogólny wypożyczania narzędzi',
 'REGULAMIN WYPOŻYCZANIA NARZĘDZI W LOKALNEJ SPOŁECZNOŚCI
 
 1. ZASADY OGÓLNE
@@ -74,7 +157,7 @@ INSERT INTO terms (id, category, title, content, created_at, updated_at) VALUES
 '2025-01-01 10:00:00', '2025-01-01 10:00:00'),
 
 -- Regulamin dla kategorii GARDENING
-(2, 'GARDENING', 'Regulamin wypożyczania narzędzi ogrodniczych',
+(2, (SELECT id FROM categories WHERE name = 'GARDENING'), 'Regulamin wypożyczania narzędzi ogrodniczych',
 'REGULAMIN WYPOŻYCZANIA NARZĘDZI OGRODNICZYCH
 
 1. ZASADY OGÓLNE
@@ -107,7 +190,7 @@ INSERT INTO terms (id, category, title, content, created_at, updated_at) VALUES
 '2025-01-01 10:00:00', '2025-01-01 10:00:00'),
 
 -- Regulamin dla kategorii CONSTRUCTION
-(3, 'CONSTRUCTION', 'Regulamin wypożyczania narzędzi budowlanych',
+(3, (SELECT id FROM categories WHERE name = 'CONSTRUCTION'), 'Regulamin wypożyczania narzędzi budowlanych',
 'REGULAMIN WYPOŻYCZANIA NARZĘDZI BUDOWLANYCH
 
 1. ZASADY OGÓLNE
@@ -141,7 +224,7 @@ INSERT INTO terms (id, category, title, content, created_at, updated_at) VALUES
 '2025-01-01 10:00:00', '2025-01-01 10:00:00'),
 
 -- Regulamin dla kategorii ELECTRIC
-(4, 'ELECTRIC', 'Regulamin wypożyczania narzędzi elektrycznych',
+(4, (SELECT id FROM categories WHERE name = 'ELECTRIC'), 'Regulamin wypożyczania narzędzi elektrycznych',
 'REGULAMIN WYPOŻYCZANIA NARZĘDZI ELEKTRYCZNYCH
 
 1. ZASADY OGÓLNE
@@ -175,7 +258,7 @@ INSERT INTO terms (id, category, title, content, created_at, updated_at) VALUES
 '2025-01-01 10:00:00', '2025-01-01 10:00:00'),
 
 -- Regulamin dla kategorii PLUMBING
-(5, 'PLUMBING', 'Regulamin wypożyczania narzędzi hydraulicznych',
+(5, (SELECT id FROM categories WHERE name = 'PLUMBING'), 'Regulamin wypożyczania narzędzi hydraulicznych',
 'REGULAMIN WYPOŻYCZANIA NARZĘDZI HYDRAULICZNYCH
 
 1. ZASADY OGÓLNE
@@ -211,26 +294,26 @@ INSERT INTO terms (id, category, title, content, created_at, updated_at) VALUES
 -- NARZĘDZIA
 -- ============================================
 
-INSERT INTO tools (id, name, description, price_per_day, category, owner_id, address, latitude, longitude, main_image_url, terms_id, created_at, updated_at, is_active, moderation_status, moderator_id, moderated_at, moderation_comment) VALUES
+INSERT INTO tools (id, name, description, price_per_day, category_id, owner_id, address, latitude, longitude, main_image_url, terms_id, created_at, updated_at, is_active, moderation_status, moderator_id, moderated_at, moderation_comment) VALUES
 -- Narzędzia w promieniu ~10km od punktu bazowego (50.0307635, 22.015645)
-(1, 'Wiertarka udarowa Bosch', 'Profesjonalna wiertarka udarowa z zestawem wierteł. Idealna do prac budowlanych.', 50.00, 'CONSTRUCTION', 1, 'Rzeszów - centrum', 50.0412, 21.9991, NULL, 3, '2025-01-10 09:00:00', '2025-01-10 09:00:00', true, 'APPROVED', 6, '2025-01-10 10:00:00', 'Narzędzie zatwierdzone'),
-(2, 'Kosiarka spalinowa', 'Kosiarka spalinowa 5.5KM, szerokość koszenia 46cm. Idealna do dużych trawników.', 80.00, 'GARDENING', 1, 'Rzeszów - Staroniwa', 50.0200, 22.0300, NULL, 2, '2025-01-11 10:00:00', '2025-01-11 10:00:00', true, 'APPROVED', 6, '2025-01-11 11:00:00', 'Zatwierdzone'),
-(3, 'Wkrętarka akumulatorowa', 'Wkrętarka akumulatorowa 18V z dwoma bateriami. Kompletna w zestawie.', 40.00, 'ELECTRIC', 1, 'Rzeszów - Drabinianka', 50.0150, 22.0050, NULL, 4, '2025-01-12 11:00:00', '2025-01-12 11:00:00', true, 'APPROVED', 6, '2025-01-12 12:00:00', 'OK'),
+(1, 'Wiertarka udarowa Bosch', 'Profesjonalna wiertarka udarowa z zestawem wierteł. Idealna do prac budowlanych.', 50.00, (SELECT id FROM categories WHERE name = 'CONSTRUCTION'), 1, 'Rzeszów - centrum', 50.0412, 21.9991, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi budowlanych'), '2025-01-10 09:00:00', '2025-01-10 09:00:00', true, 'APPROVED', 6, '2025-01-10 10:00:00', 'Narzędzie zatwierdzone'),
+(2, 'Kosiarka spalinowa', 'Kosiarka spalinowa 5.5KM, szerokość koszenia 46cm. Idealna do dużych trawników.', 80.00, (SELECT id FROM categories WHERE name = 'GARDENING'), 1, 'Rzeszów - Staroniwa', 50.0200, 22.0300, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi ogrodniczych'), '2025-01-11 10:00:00', '2025-01-11 10:00:00', true, 'APPROVED', 6, '2025-01-11 11:00:00', 'Zatwierdzone'),
+(3, 'Wkrętarka akumulatorowa', 'Wkrętarka akumulatorowa 18V z dwoma bateriami. Kompletna w zestawie.', 40.00, (SELECT id FROM categories WHERE name = 'ELECTRIC'), 1, 'Rzeszów - Drabinianka', 50.0150, 22.0050, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi elektrycznych'), '2025-01-12 11:00:00', '2025-01-12 11:00:00', true, 'APPROVED', 6, '2025-01-12 12:00:00', 'OK'),
 
 -- Narzędzia w promieniu ~25km od punktu bazowego
-(4, 'Młot pneumatyczny', 'Młot pneumatyczny do kucia betonu i asfaltu. Bardzo wydajny.', 120.00, 'CONSTRUCTION', 2, 'Głogów Małopolski', 50.1350, 21.9700, NULL, 3, '2025-01-13 12:00:00', '2025-01-13 12:00:00', true, 'APPROVED', 6, '2025-01-13 13:00:00', 'Zatwierdzone'),
-(5, 'Sekator elektryczny', 'Sekator elektryczny do żywopłotów. Długość ostrza 60cm.', 35.00, 'GARDENING', 2, 'Tyczyn', 50.1050, 22.0300, NULL, 2, '2025-01-14 13:00:00', '2025-01-14 13:00:00', true, 'APPROVED', 6, '2025-01-14 14:00:00', 'OK'),
-(6, 'Wiertarka do betonu', 'Wiertarka udarowa do betonu 1500W. Zestaw wierteł w zestawie.', 60.00, 'CONSTRUCTION', 2, 'Boguchwała', 50.0850, 22.1400, NULL, 3, '2025-01-15 14:00:00', '2025-01-15 14:00:00', true, 'APPROVED', 6, '2025-01-15 15:00:00', 'Zatwierdzone'),
+(4, 'Młot pneumatyczny', 'Młot pneumatyczny do kucia betonu i asfaltu. Bardzo wydajny.', 120.00, (SELECT id FROM categories WHERE name = 'CONSTRUCTION'), 2, 'Głogów Małopolski', 50.1350, 21.9700, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi budowlanych'), '2025-01-13 12:00:00', '2025-01-13 12:00:00', true, 'APPROVED', 6, '2025-01-13 13:00:00', 'Zatwierdzone'),
+(5, 'Sekator elektryczny', 'Sekator elektryczny do żywopłotów. Długość ostrza 60cm.', 35.00, (SELECT id FROM categories WHERE name = 'GARDENING'), 2, 'Tyczyn', 50.1050, 22.0300, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi ogrodniczych'), '2025-01-14 13:00:00', '2025-01-14 13:00:00', true, 'APPROVED', 6, '2025-01-14 14:00:00', 'OK'),
+(6, 'Wiertarka do betonu', 'Wiertarka udarowa do betonu 1500W. Zestaw wierteł w zestawie.', 60.00, (SELECT id FROM categories WHERE name = 'CONSTRUCTION'), 2, 'Boguchwała', 50.0850, 22.1400, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi budowlanych'), '2025-01-15 14:00:00', '2025-01-15 14:00:00', true, 'APPROVED', 6, '2025-01-15 15:00:00', 'Zatwierdzone'),
 
 -- Narzędzia w promieniu ~50km od punktu bazowego
-(7, 'Klucz nasadowy', 'Komplet kluczy nasadowych 1/2 cala, 72 sztuki. Profesjonalny zestaw.', 45.00, 'OTHER', 3, 'Łańcut', 50.0670, 22.2290, NULL, 1, '2025-01-16 15:00:00', '2025-01-16 15:00:00', true, 'APPROVED', 6, '2025-01-16 16:00:00', 'Zatwierdzone'),
-(8, 'Prasa do rur', 'Prasa hydrauliczna do rur miedzianych i z tworzyw sztucznych.', 90.00, 'PLUMBING', 3, 'Leżajsk', 50.2580, 22.4190, NULL, 5, '2025-01-17 16:00:00', '2025-01-17 16:00:00', true, 'APPROVED', 6, '2025-01-17 17:00:00', 'OK'),
-(9, 'Pilarka tarczowa', 'Pilarka tarczowa 2000W do drewna i metalu. Nowa, nieużywana.', 55.00, 'ELECTRIC', 4, 'Przeworsk', 50.0590, 22.4940, NULL, 4, '2025-01-18 17:00:00', '2025-01-18 17:00:00', true, 'PENDING', NULL, NULL, NULL),
+(7, 'Klucz nasadowy', 'Komplet kluczy nasadowych 1/2 cala, 72 sztuki. Profesjonalny zestaw.', 45.00, (SELECT id FROM categories WHERE name = 'OTHER'), 3, 'Łańcut', 50.0670, 22.2290, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin ogólny wypożyczania narzędzi'), '2025-01-16 15:00:00', '2025-01-16 15:00:00', true, 'APPROVED', 6, '2025-01-16 16:00:00', 'Zatwierdzone'),
+(8, 'Prasa do rur', 'Prasa hydrauliczna do rur miedzianych i z tworzyw sztucznych.', 90.00, (SELECT id FROM categories WHERE name = 'PLUMBING'), 3, 'Leżajsk', 50.2580, 22.4190, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi hydraulicznych'), '2025-01-17 16:00:00', '2025-01-17 16:00:00', true, 'APPROVED', 6, '2025-01-17 17:00:00', 'OK'),
+(9, 'Pilarka tarczowa', 'Pilarka tarczowa 2000W do drewna i metalu. Nowa, nieużywana.', 55.00, (SELECT id FROM categories WHERE name = 'ELECTRIC'), 4, 'Przeworsk', 50.0590, 22.4940, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi elektrycznych'), '2025-01-18 17:00:00', '2025-01-18 17:00:00', true, 'PENDING', NULL, NULL, NULL),
 
 -- Narzędzia w promieniu ~100km od punktu bazowego
-(10, 'Wąż ogrodowy', 'Wąż ogrodowy 50m z pistoletem zraszającym. Wysokiej jakości.', 25.00, 'GARDENING', 4, 'Jarosław', 50.0170, 22.6770, NULL, 2, '2025-01-19 18:00:00', '2025-01-19 18:00:00', true, 'PENDING', NULL, NULL, NULL),
-(11, 'Narzędzie testowe', 'To narzędzie zostało odrzucone przez moderatora.', 30.00, 'OTHER', 5, 'Stalowa Wola', 50.5680, 22.0530, NULL, 1, '2025-01-20 19:00:00', '2025-01-20 19:00:00', false, 'REJECTED', 6, '2025-01-20 20:00:00', 'Narzędzie nie spełnia wymagań'),
-(12, 'Szpadel', 'Szpadel ogrodowy z trzonkiem drewnianym. Używany ale sprawny.', 15.00, 'GARDENING', 1, 'Tarnobrzeg', 50.5730, 21.6780, NULL, 2, '2025-01-21 20:00:00', '2025-01-21 20:00:00', false, 'APPROVED', 6, '2025-01-21 21:00:00', 'Zatwierdzone');
+(10, 'Wąż ogrodowy', 'Wąż ogrodowy 50m z pistoletem zraszającym. Wysokiej jakości.', 25.00, (SELECT id FROM categories WHERE name = 'GARDENING'), 4, 'Jarosław', 50.0170, 22.6770, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi ogrodniczych'), '2025-01-19 18:00:00', '2025-01-19 18:00:00', true, 'PENDING', NULL, NULL, NULL),
+(11, 'Narzędzie testowe', 'To narzędzie zostało odrzucone przez moderatora.', 30.00, (SELECT id FROM categories WHERE name = 'OTHER'), 5, 'Stalowa Wola', 50.5680, 22.0530, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin ogólny wypożyczania narzędzi'), '2025-01-20 19:00:00', '2025-01-20 19:00:00', false, 'REJECTED', 6, '2025-01-20 20:00:00', 'Narzędzie nie spełnia wymagań'),
+(12, 'Szpadel', 'Szpadel ogrodowy z trzonkiem drewnianym. Używany ale sprawny.', 15.00, (SELECT id FROM categories WHERE name = 'GARDENING'), 1, 'Tarnobrzeg', 50.5730, 21.6780, NULL, (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi ogrodniczych'), '2025-01-21 20:00:00', '2025-01-21 20:00:00', false, 'APPROVED', 6, '2025-01-21 21:00:00', 'Zatwierdzone');
 
 -- ============================================
 -- REZERWACJE
@@ -244,7 +327,7 @@ INSERT INTO reservations (id, tool_id, renter_id, start_date, end_date, total_pr
 (2, 2, 3, '2025-12-10', '2025-12-15', 400.00, 'CONFIRMED', NULL, NULL, '2025-11-21 11:00:00', '2025-11-21 12:00:00'),
 
 -- Rezerwacja z zaakceptowanym regulaminem (użytkownik 4 wynajmuje od użytkownika 2)
-(3, 4, 4, '2025-12-20', '2025-12-25', 600.00, 'REGULATIONS_ACCEPTED', 3, '2025-11-22 13:00:00', '2025-11-22 12:00:00', '2025-11-22 13:00:00'),
+(3, 4, 4, '2025-12-20', '2025-12-25', 600.00, 'REGULATIONS_ACCEPTED', (SELECT id FROM terms WHERE title LIKE 'Regulamin wypożyczania narzędzi budowlanych'), '2025-11-22 13:00:00', '2025-11-22 12:00:00', '2025-11-22 13:00:00'),
 
 -- Rezerwacja anulowana (użytkownik 4 wynajmuje od użytkownika 1)
 (4, 3, 4, '2025-12-01', '2025-12-03', 80.00, 'CANCELED', NULL, NULL, '2025-11-23 14:00:00', '2025-11-23 15:00:00'),
@@ -341,3 +424,15 @@ UPDATE tools SET main_image_url = 'http://localhost:8080/api/v1/files/tool12_mai
 -- ~25km: Narzędzia 4, 5, 6 (Głogów Małopolski, Tyczyn, Boguchwała)
 -- ~50km: Narzędzia 7, 8, 9 (Łańcut, Leżajsk, Przeworsk)
 -- ~100km: Narzędzia 10, 11, 12 (Jarosław, Stalowa Wola, Tarnobrzeg)
+
+-- ============================================
+-- RESETOWANIE SEKWENCJI
+-- ============================================
+-- Resetujemy sekwencje aby uniknąć konfliktów z ręcznymi ID
+SELECT setval('terms_seq', (SELECT MAX(id) FROM terms));
+SELECT setval('tools_seq', (SELECT MAX(id) FROM tools));
+SELECT setval('users_seq', (SELECT MAX(id) FROM users));
+SELECT setval('reservations_seq', (SELECT MAX(id) FROM reservations));
+SELECT setval('tool_images_seq', (SELECT MAX(id) FROM tool_images));
+SELECT setval('categories_seq', (SELECT MAX(id) FROM categories));
+

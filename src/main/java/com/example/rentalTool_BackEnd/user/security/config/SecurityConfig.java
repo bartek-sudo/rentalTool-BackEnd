@@ -105,6 +105,12 @@ class SecurityConfig {
                                         .requestMatchers(PUT, "/api/v1/terms/{id}").hasAuthority("ADMIN")
                                         .requestMatchers(DELETE, "/api/v1/terms/{id}").hasAuthority("ADMIN")
 
+                                        // Category endpoints
+                                        .requestMatchers(GET, "/api/v1/categories/**").permitAll()
+                                        .requestMatchers(POST, "/api/v1/categories").hasAuthority("ADMIN")
+                                        .requestMatchers(PUT, "/api/v1/categories/{id}").hasAuthority("ADMIN")
+                                        .requestMatchers(DELETE, "/api/v1/categories/{id}").hasAuthority("ADMIN")
+
                                         // Endpoints dla moderatora
                                         .requestMatchers(GET, "/api/v1/moderation/status/{status}").hasAnyAuthority("MODERATOR")
                                         .requestMatchers(POST, "/api/v1/moderation/{toolId}/approve").hasAnyAuthority("MODERATOR")
