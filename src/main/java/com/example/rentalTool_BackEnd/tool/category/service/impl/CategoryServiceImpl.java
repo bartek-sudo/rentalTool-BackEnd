@@ -76,13 +76,31 @@ class CategoryServiceImpl implements CategoryService {
         Category otherCategory = categoryRepo.findByName("OTHER")
                 .orElseThrow(() -> new IllegalStateException("Default category 'OTHER' not found in database"));
 
+        // Znajdź regulamin dla kategorii OTHER (weź pierwszy, jeśli jest wiele)
+        List<Terms> otherTerms = termsRepo.findTermsByCategory(otherCategory);
+        Long otherTermsId = null;
+        if (!otherTerms.isEmpty()) {
+            otherTermsId = otherTerms.get(0).getId();
+        }
+
         // Przenieś wszystkie narzędzia z usuwanej kategorii do kategorii "OTHER"
         // Używamy bezpośrednio SQL dla wydajności i uniknięcia problemów z dostępem do repozytoriów
-        jdbcTemplate.update(
-                "UPDATE tools SET category_id = ? WHERE category_id = ?",
-                otherCategory.getId(),
-                id
-        );
+        if (otherTermsId != null) {
+            // Aktualizuj zarówno category_id jak i terms_id
+            jdbcTemplate.update(
+                    "UPDATE tools SET category_id = ?, terms_id = ? WHERE category_id = ?",
+                    otherCategory.getId(),
+                    otherTermsId,
+                    id
+            );
+        } else {
+            // Jeśli nie ma regulaminu dla OTHER, tylko przenieś kategorię
+            jdbcTemplate.update(
+                    "UPDATE tools SET category_id = ? WHERE category_id = ?",
+                    otherCategory.getId(),
+                    id
+            );
+        }
 
         // Usuń wszystkie regulaminy powiązane z tą kategorią
         List<Terms> relatedTerms = termsRepo.findTermsByCategory(category);
