@@ -131,7 +131,6 @@ public class UserController {
     })
     @PutMapping("/me")
     public ResponseEntity<HttpResponse> updateUser(
-//            @PathVariable("id") long id,
             @RequestBody UserUpdateRequest userUpdateRequest,
             Authentication authentication) {
 
@@ -155,11 +154,8 @@ public class UserController {
         }
 
         if (!oldEmail.equalsIgnoreCase(newEmail)) {
-            // Email się zmienił – cofamy weryfikację
             authenticatedUser.setEmail(newEmail);
-//            authenticatedUser.setVerified(false); //todo
             authenticatedUser.setVerifiedAt(null);
-            // TODO: Wyślij maila weryfikacyjnego na nowy adres
         } else {
             authenticatedUser.setEmail(newEmail);
         }

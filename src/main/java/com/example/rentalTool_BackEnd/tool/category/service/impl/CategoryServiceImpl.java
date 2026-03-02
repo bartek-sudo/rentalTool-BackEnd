@@ -106,7 +106,6 @@ class CategoryServiceImpl implements CategoryService {
         List<Terms> relatedTerms = termsRepo.findTermsByCategory(category);
         relatedTerms.forEach(termsRepo::deleteTerms);
 
-        // Usuń kategorię
         categoryRepo.delete(category);
     }
 }

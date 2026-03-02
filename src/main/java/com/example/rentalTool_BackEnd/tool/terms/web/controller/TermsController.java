@@ -90,7 +90,6 @@ public class TermsController {
     })
     @GetMapping("/categories")
     public ResponseEntity<HttpResponse> getAllCategories() {
-        // Przekierowanie do CategoryController - ten endpoint powinien używać /api/v1/categories
         List<Category> categories = termsService.getCategoriesWithoutTerms();
 
         return ResponseEntity.status(HttpStatus.OK)

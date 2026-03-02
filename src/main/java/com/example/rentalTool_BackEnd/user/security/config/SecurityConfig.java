@@ -77,10 +77,9 @@ class SecurityConfig {
                                         .requestMatchers(POST, "/api/v1/tools").authenticated()
                                         .requestMatchers(PUT, "/api/v1/tools/{id}").authenticated()
                                         .requestMatchers(PATCH, "/api/v1/tools/{id}/status").authenticated()
-                                        .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()//zabezpieczyć
-//                                        .requestMatchers(GET, "/api/v1/tools/all").permitAll()//zabezpieczyć
+                                        .requestMatchers(GET, "/api/v1/tools/{id}").permitAll()
                                         .requestMatchers(GET, "/api/v1/tools/search").permitAll()
-                                        .requestMatchers(GET, "/api/v1/tools/{toolId}/availability").permitAll()//zabezpieczyć
+                                        .requestMatchers(GET, "/api/v1/tools/{toolId}/availability").permitAll()
 
                                         // Tool images endpoints
                                         .requestMatchers(POST, "/api/v1/tools/{toolId}/images").authenticated()

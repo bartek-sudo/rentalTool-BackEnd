@@ -98,10 +98,8 @@ public class ToolController {
         if (authentication != null) {
             final Jwt jwt = (Jwt) authentication.getPrincipal();
             final long userId = jwt.getClaim("user_id");
-//            final String userRole = jwt.getClaim("authorities");
 
             isOwner = tool.getOwnerId() == userId;
-//            isModerator = userRole.equals("MODERATOR") || userRole.equals("ADMIN");
             isModerator = authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("MODERATOR") || a.getAuthority().equals("ADMIN"));
         }
@@ -127,37 +125,6 @@ public class ToolController {
                         .data(Map.of("Tool", toolDtoMapper.toDto(tool)))
                         .build());
     }
-
-//    @GetMapping("/all")
-//    public ResponseEntity<HttpResponse> getAllTools(
-//            @RequestParam(value = "page", defaultValue = "0") int page,
-//            @RequestParam(value = "size", defaultValue = "10") int size,
-//            @RequestParam(value = "sortBy", defaultValue = "id") String sortBy,
-//            @RequestParam(value = "sortDirection", defaultValue = "asc") String sortDirection
-//    ) {
-//        Pageable pageable = PageRequest.of(
-//                page,
-//                size,
-//                sortDirection.equalsIgnoreCase("desc") ? Sort.by(sortBy).descending() : Sort.by(sortBy).ascending()
-//        );
-//
-//        Page<Tool> toolsPage = toolService.getAllTools(pageable);
-//
-//        return ResponseEntity.status(OK)
-//                .body(HttpResponse.builder()
-//                        .timeStamp(TimeUtil.getCurrentTimeWithFormat())
-//                        .statusCode(OK.value())
-//                        .httpStatus(OK)
-//                        .reason("All tools data request")
-//                        .message("All tools")
-//                        .data(Map.of("tools", toolsPage.stream().map(toolDtoMapper::toDto).toList(),
-//                                "currentPage", toolsPage.getNumber(),
-//                                "totalPages", toolsPage.getTotalPages(),
-//                                "totalItems", toolsPage.getTotalElements(),
-//                                "pageSize", toolsPage.getSize()
-//                                ))
-//                        .build());
-//    }
 
     @Operation(summary = "Wyszukaj narzędzia", description = "Wyszukuje narzędzia po nazwie/opisie z opcjonalnym filtrowaniem po kategorii i geolokalizacji. " +
             "Możliwe kategorie: GARDENING, CONSTRUCTION, ELECTRIC, PLUMBING, OTHER. " +

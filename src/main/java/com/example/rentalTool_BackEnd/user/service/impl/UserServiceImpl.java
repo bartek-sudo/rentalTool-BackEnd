@@ -32,11 +32,6 @@ class UserServiceImpl implements UserService, UserExternalService {
     private final EmailVerificationService emailVerificationService;
     private final UserExternalMapper userExternalMapper;
 
-//    @Override
-//    public User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException {
-//        return userRepo.findUserByEmail(authentication.getName()).orElseThrow(() -> new UserNotFoundException("User not found by email"));
-//    }
-
     @Override
     public User getUserByEmail(String email) throws UserNotFoundException {
         return userRepo.findUserByEmail(email).orElseThrow(() -> new UserNotFoundException("User not found by email"));
@@ -44,18 +39,13 @@ class UserServiceImpl implements UserService, UserExternalService {
 
     @Override
     public Optional<User> findOptionalByEmail(String email) {
-        return userRepo.findUserByEmail(email); // Zwraca Optional, nie rzuca wyjątku
+        return userRepo.findUserByEmail(email);
     }
 
     @Override
     public User getUserById(long id) throws UserNotFoundException {
         return userRepo.findUserById(id).orElseThrow(() -> new UserNotFoundException("User not found by id"));
     }
-
-//    @Override
-//    public List<User> getUsersByFirstName(String firstName) {
-//        return userRepo.findUsersByFirstName(firstName);
-//    }
 
     @Override
     @Transactional
@@ -134,7 +124,6 @@ class UserServiceImpl implements UserService, UserExternalService {
         }
     }
 
-    // UserExternalService implementation
     @Override
     public UserExternalDto getUserDtoById(long userId) {
         User user = userRepo.findUserById(userId)

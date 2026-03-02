@@ -138,7 +138,6 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
     @Override
     public Page<Tool> findNearbyTools(Double userLatitude, Double userLongitude, Double radiusKm,
                                       String searchTerm, String category, Pageable pageable) {
-        // Pobierz wszystkie aktywne narzędzia
         Page<Tool> allToolsPage;
 
         boolean hasSearchTerm = searchTerm != null && !searchTerm.trim().isEmpty();
@@ -175,7 +174,7 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
                     })
                     .collect(Collectors.toList());
         } else {
-            // Jeśli radius = null (nieskończoność), zwróć wszystkie - tworzymy mutablecopy dla sortowania
+            // Jeśli radius = null (nieskończoność), zwróć wszystkie
             filteredTools = allTools.stream().collect(Collectors.toList());
         }
 
@@ -280,7 +279,6 @@ class ToolServiceImpl implements ToolService, ToolExternalService {
         // Dodaj zdjęcie do narzędzia
         tool.addImage(image);
 
-        // Zapisz narzędzie
         Tool savedTool = toolRepo.saveTool(tool);
 
         // Znajdź i zwróć zapisane zdjęcie

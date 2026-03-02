@@ -34,7 +34,7 @@ public class Reservation {
     private ReservationStatus status;
 
     @Column(nullable = true)
-    private Long termsId; // ID wybranego regulaminu
+    private Long termsId;
 
     private Instant termsAcceptedAt;
 

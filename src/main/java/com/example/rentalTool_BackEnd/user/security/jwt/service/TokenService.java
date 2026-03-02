@@ -14,7 +14,6 @@ import java.time.temporal.ChronoUnit;
 public class TokenService {
 
     private final JwtEncoder jwtEncoder;
-//    private final JwtDecoder jwtDecoder;
 
     public String generateJwtToken(Authentication authentication, User user) {
         final Instant expiredTime = Instant.now().plus(7, ChronoUnit.DAYS);
@@ -30,14 +29,4 @@ public class TokenService {
 
         return jwtEncoder.encode(JwtEncoderParameters.from(claimsSet)).getTokenValue();
     }
-
-//    public Long getUserIdFromJwtToken(String token) {
-//        try {
-//            Jwt jwt = jwtDecoder.decode(token);
-//
-//            return jwt.getClaim("user_id");
-//        } catch (JwtException e) {
-//            throw new IllegalAccountAccessException("Wrong authentication");
-//        }
-//    }
 }

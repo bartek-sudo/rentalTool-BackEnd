@@ -13,9 +13,6 @@ class EmailServiceImpl implements EmailService {
     
     private final JavaMailSender mailSender;
     
-    @Value("${app.frontend.url:http://localhost:3000}")
-    private String frontendUrl;
-    
     @Value("${app.backend.url:http://localhost:8080}")
     private String backendUrl;
     

@@ -43,8 +43,6 @@ public class SecurityExceptionHandler {
 
     @ExceptionHandler(DisabledException.class)
     public ResponseEntity<HttpResponse> handleDisabledException(DisabledException e) {
-        // Spring Security rzuca DisabledException gdy account is not enabled
-        // Sprawdzamy czy to z powodu niezweryfikowanego emaila
         String message = e.getMessage();
         if (message != null && message.contains("disabled") || message != null && message.contains("enabled")) {
             return ResponseEntity.status(FORBIDDEN).body(

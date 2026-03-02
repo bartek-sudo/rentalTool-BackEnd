@@ -23,6 +23,7 @@ public class Tool {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private long id;
     private String name;
+    @Column(length = 2000)
     private String description;
     private double pricePerDay;
 
@@ -37,12 +38,10 @@ public class Tool {
     private Double longitude; // długość geograficzna
 
     @Column(nullable = false)
-    private Long termsId; // Wybrany regulamin przez właściciela narzędzia
+    private Long termsId;
 
-    // Główne zdjęcie dla szybkiego dostępu
     private String mainImageUrl;
 
-    // Relacja z obrazami
     @OneToMany(mappedBy = "tool", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ToolImage> images = new ArrayList<>();
 
@@ -56,8 +55,8 @@ public class Tool {
     private ModerationStatus moderationStatus;
 
     private Long moderatorId; // ID moderatora który przejrzał narzędzie
-    private Instant moderatedAt; // kiedy zostało zmoderowane
-    private String moderationComment; // komentarz moderatora (opcjonalny)
+    private Instant moderatedAt;
+    private String moderationComment;
 
     public Tool(String name, String description, double pricePerDay, Category category, long owner, String address, Double latitude, Double longitude, Long termsId) {
         this.name = name;
@@ -75,13 +74,11 @@ public class Tool {
         this.moderationStatus = ModerationStatus.PENDING;
     }
 
-    // Pomocnicza metoda do dodawania zdjęcia
     public void addImage(ToolImage image) {
         images.add(image);
         image.setTool(this);
     }
 
-    // Pomocnicza metoda do usuwania zdjęcia
     public void removeImage(ToolImage image) {
         boolean wasMain = image.isMain();
 
@@ -100,16 +97,14 @@ public class Tool {
         }
     }
 
-    // Ustawianie głównego zdjęcia
     public void setMainImage(ToolImage newMainImage) {
         // Sprawdź czy zdjęcie należy do tego narzędzia
         if (!images.contains(newMainImage)) {
             throw new IllegalArgumentException("Zdjęcie nie należy do tego narzędzia");
         }
 
-        // Sprawdź czy to zdjęcie już nie jest główne
         if (newMainImage.isMain()) {
-            return; // Nie rób nic jeśli już jest główne
+            return;
         }
 
         // Zresetowanie flagi głównego zdjęcia dla wszystkich zdjęć
@@ -155,27 +150,6 @@ public class Tool {
      */
     public boolean isPubliclyVisible() {
         return moderationStatus == ModerationStatus.APPROVED && isActive;
-    }
-
-    /**
-     * Sprawdza czy narzędzie czeka na moderację
-     */
-    public boolean isPendingModeration() {
-        return moderationStatus == ModerationStatus.PENDING;
-    }
-
-    /**
-     * Sprawdza czy narzędzie zostało odrzucone
-     */
-    public boolean isRejected() {
-        return moderationStatus == ModerationStatus.REJECTED;
-    }
-
-    /**
-     * Sprawdza czy narzędzie ma przynajmniej jedno zdjęcie
-     */
-    public boolean hasImages() {
-        return images != null && !images.isEmpty();
     }
 
 }

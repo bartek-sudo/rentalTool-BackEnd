@@ -71,7 +71,6 @@ class TermsServiceImpl implements TermsService, TermsExternalService {
         return categoriesWithoutTerms;
     }
 
-    // TermsExternalService implementation
     @Override
     public TermsExternalDto getTermsDtoById(Long id) {
         Terms terms = termsRepo.findTermsById(id)
@@ -79,7 +78,6 @@ class TermsServiceImpl implements TermsService, TermsExternalService {
         return termsExternalMapper.toDto(terms);
     }
 
-    // ADMIN methods
     @Override
     public Terms createTerm(Long categoryId, String title, String content) {
         Category category = categoryRepo.findById(categoryId)

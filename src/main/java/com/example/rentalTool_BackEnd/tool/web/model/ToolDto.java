@@ -6,6 +6,7 @@ public record ToolDto(
         String description,
         double pricePerDay,
         String category,
+        String displayName,
         long ownerId,
         String address,
         double latitude,

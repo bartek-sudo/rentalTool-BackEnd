@@ -50,10 +50,5 @@ public class GlobalExceptionHandler {
                         .build()
         );
     }
-
-    // Uwaga: RuntimeException handler jest zbyt ogólny i może łapać wszystkie błędy
-    // Lepszym rozwiązaniem byłoby utworzenie konkretnych wyjątków (np. FileStorageException)
-    // dla błędów związanych z plikami, zamiast używać RuntimeException
-    // Na razie nie dodajemy tego handlera, aby uniknąć przechwytywania wszystkich błędów
 }
 

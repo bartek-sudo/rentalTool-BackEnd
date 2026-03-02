@@ -18,14 +18,6 @@ interface ToolJpaRepo extends JpaRepository<Tool, Long> {
 
     Page<Tool> findByOwnerId(long ownerId, Pageable pageable);
 
-//    Page<Tool> findByNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(
-//            String name, String description, Pageable pageable);
-
-    Page<Tool> findByIsActiveTrue(Pageable pageable);
-
-    Page<Tool> findByIsActiveTrueAndNameContainingIgnoreCaseOrIsActiveTrueAndDescriptionContainingIgnoreCase(
-            String name, String description, Pageable pageable);
-
     /**
      * Znajduje narzędzia według statusu moderacji
      */

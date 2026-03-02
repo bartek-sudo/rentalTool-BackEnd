@@ -2,6 +2,7 @@ package com.example.rentalTool_BackEnd.reservation.web.controller;
 
 import com.example.rentalTool_BackEnd.reservation.model.Reservation;
 import com.example.rentalTool_BackEnd.reservation.service.ReservationService;
+import com.example.rentalTool_BackEnd.reservation.web.mapper.ReservationMapper;
 import com.example.rentalTool_BackEnd.tool.spi.TermsExternalService;
 import com.example.rentalTool_BackEnd.tool.category.model.Category;
 import com.example.rentalTool_BackEnd.tool.spi.ToolExternalDto;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,7 +27,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
+@WebMvcTest(controllers = ReservationController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class ReservationControllerBadRequestTest {
 
@@ -41,6 +42,9 @@ class ReservationControllerBadRequestTest {
 
     @MockBean
     private TermsExternalService termsExternalService;
+
+    @MockBean
+    private ReservationMapper reservationMapper;
 
     @MockBean
     private UserExternalService userExternalService;
@@ -161,4 +165,3 @@ class ReservationControllerBadRequestTest {
         return new JwtAuthenticationToken(jwt);
     }
 }
-

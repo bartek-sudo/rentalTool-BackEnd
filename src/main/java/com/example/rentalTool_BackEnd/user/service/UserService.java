@@ -13,8 +13,6 @@ import java.util.Optional;
 
 public interface UserService {
 
-//    User getUserFromAuthentication(Authentication authentication) throws UserNotFoundException;
-
     User getUserByEmail(String email) throws UserNotFoundException;
 
     Optional<User> findOptionalByEmail(String email);

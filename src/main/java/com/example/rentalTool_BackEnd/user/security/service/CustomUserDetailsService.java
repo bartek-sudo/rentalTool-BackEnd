@@ -24,7 +24,6 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         final User user = userService.getUserByEmail(email);
 
-        // Ustawiamy enabled = true, aby Spring Security nie blokował przed sprawdzeniem hasła
         // Weryfikację emaila sprawdzamy ręcznie w AccountAuthenticationProvider po sprawdzeniu hasła
         return new org.springframework.security.core.userdetails.User(
                 user.getEmail(),

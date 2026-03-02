@@ -40,14 +40,11 @@ class EmailVerificationServiceImpl implements EmailVerificationService {
         EmailVerificationToken verificationToken = new EmailVerificationToken(token, user.getId(), expiresAt);
         verificationToken = tokenRepo.save(verificationToken);
         
-        // Wyślij email weryfikacyjny (obsługa błędów - nie przerywamy rejestracji)
         try {
             emailService.sendVerificationEmail(user.getEmail(), token, user.getFirstName());
             log.info("Verification email sent successfully to: {}", user.getEmail());
         } catch (Exception e) {
             log.error("Failed to send verification email to: {}. Error: {}", user.getEmail(), e.getMessage());
-            // Nie rzucamy wyjątku - token został zapisany, użytkownik może zweryfikować później
-            // przez endpoint resend-verification
         }
         
         return verificationToken;

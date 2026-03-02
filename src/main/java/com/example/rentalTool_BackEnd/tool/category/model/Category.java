@@ -20,13 +20,13 @@ public class Category {
     private Long id;
 
     @Column(nullable = false, unique = true, length = 100)
-    private String name; // np. "GARDENING", "CONSTRUCTION"
+    private String name;
 
     @Column(nullable = false, length = 100)
-    private String displayName; // np. "Ogrodnictwo", "Budownictwo"
+    private String displayName;
 
     @Column(length = 500)
-    private String description; // Opcjonalny opis kategorii
+    private String description;
 
     @Column(nullable = false)
     private Instant createdAt;
@@ -35,7 +35,7 @@ public class Category {
     private Instant updatedAt;
 
     public Category(String name, String displayName, String description) {
-        this.name = name.toUpperCase(); // Zawsze uppercase dla spójności
+        this.name = name.toUpperCase();
         this.displayName = displayName;
         this.description = description;
         this.createdAt = Instant.now();

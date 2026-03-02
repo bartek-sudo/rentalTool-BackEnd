@@ -16,7 +16,6 @@ public interface TermsService {
 
     List<Category> getCategoriesWithoutTerms();
 
-    // ADMIN methods
     Terms createTerm(Long categoryId, String title, String content);
 
     Terms updateTerm(Long id, Long categoryId, String title, String content);

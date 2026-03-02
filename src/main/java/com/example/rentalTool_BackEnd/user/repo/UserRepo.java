@@ -19,10 +19,6 @@ public class UserRepo {
         return userJpaRepo.findUserByEmail(email);
     }
 
-    public List<User> findUsersByFirstName(String firstName){
-        return userJpaRepo.findUsersByFirstName(firstName);
-    }
-
     public Optional<User> findUserById(long id){
         return userJpaRepo.findById(id);
     }
